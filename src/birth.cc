@@ -738,9 +738,31 @@ static void player_wipe()
 }
 
 
+/*
+ * Does the player's race forbid this starting object?
+ */
+static bool race_excludes_object(int tval, int sval)
+{
+	for (auto const &excluded : rp_ptr->excluded_objects)
+	{
+		if ((excluded.first == tval) && (excluded.second == sval))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
 /* Create an object */
 static void outfit_obj(object_proto const *proto)
 {
+	if (race_excludes_object(proto->tval, proto->sval))
+	{
+		return;
+	}
+
 	object_type forge;
 
 	/* Get local object */
@@ -777,6 +799,11 @@ static void outfit_objs(std::vector<object_proto> const &protos)
  */
 static void player_outfit_object(int qty, int tval, int sval)
 {
+	if (race_excludes_object(tval, sval))
+	{
+		return;
+	}
+
 	object_type forge;
 	object_type *q_ptr = &forge;
 	object_prep(q_ptr, lookup_kind(tval, sval));
@@ -802,6 +829,38 @@ static void player_outfit_spellbook(const char *spell_name)
 	{
 		quit_fmt("Couldn't find spell '%s'\n");
 	}
+}
+
+
+/*
+ * Give the player an artifact (by a_info index).
+ */
+static void player_outfit_artifact(int a_idx)
+{
+	auto const &a_info = game->edit_data.a_info;
+
+	if ((a_idx <= 0) || (a_idx >= static_cast<int>(a_info.size())) || !a_info[a_idx].name)
+	{
+		quit_fmt("Invalid starting artifact %d", a_idx);
+	}
+
+	auto const &a = a_info[a_idx];
+
+	object_type forge;
+	object_type *q_ptr = &forge;
+	object_wipe(q_ptr);
+	object_prep(q_ptr, lookup_kind(a.tval, a.sval));
+	q_ptr->name1 = a_idx;
+
+	/* Fill in the artifact's stats; also marks it as created */
+	apply_magic(q_ptr, -1, true, true, true);
+	random_artifact_resistance(q_ptr);
+
+	/* Start with it fully identified */
+	object_aware(q_ptr);
+	object_known(q_ptr);
+
+	inven_carry(q_ptr, false);
 }
 
 
@@ -960,6 +1019,7 @@ static void player_outfit()
 		player_outfit_object(qty, TV_FOOD, SV_FOOD_RATION);
 	}
 
+	if (!race_excludes_object(TV_LITE, SV_LITE_TORCH))
 	{
 		object_type forge;
 		object_type *q_ptr = &forge;
@@ -975,6 +1035,12 @@ static void player_outfit()
 	outfit_objs(rmp_ptr->object_protos);
 	outfit_objs(cp_ptr->object_protos);
 	outfit_objs(cp_ptr->spec[p_ptr->pspec].object_protos);
+
+	/* Race starting artifacts */
+	for (auto a_idx : rp_ptr->artifact_protos)
+	{
+		player_outfit_artifact(a_idx);
+	}
 }
 
 

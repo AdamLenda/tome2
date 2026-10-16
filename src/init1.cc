@@ -1153,6 +1153,38 @@ errr init_player_info_txt(FILE *fp)
 			continue;
 		}
 
+		/* Process 'A' for "Artifact birth" (a_info index) */
+		if ((buf[0] == 'R') && (buf[2] == 'A'))
+		{
+			int a_idx;
+
+			if (1 != sscanf(buf + 4, "%d", &a_idx))
+			{
+				return 1;
+			}
+
+			rp_ptr->artifact_protos.push_back(a_idx);
+
+			/* Next... */
+			continue;
+		}
+
+		/* Process 'X' for "eXcluded starting object" (tval:sval) */
+		if ((buf[0] == 'R') && (buf[2] == 'X'))
+		{
+			int tval, sval;
+
+			if (2 != sscanf(buf + 4, "%d:%d", &tval, &sval))
+			{
+				return 1;
+			}
+
+			rp_ptr->excluded_objects.emplace_back(tval, sval);
+
+			/* Next... */
+			continue;
+		}
+
 		/* Process 'C' for "Class choice flags" (multiple lines) */
 		if ((buf[0] == 'R') && (buf[2] == 'C'))
 		{

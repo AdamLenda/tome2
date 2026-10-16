@@ -13,6 +13,7 @@
 
 #include <array>
 #include <string>
+#include <utility>
 #include <vector>
 
 
@@ -41,6 +42,10 @@ struct player_race
 	struct skill_modifiers skill_modifiers;
 
 	std::vector<object_proto> object_protos;
+
+	std::vector<int> artifact_protos;                       /* Artifacts (a_info index) given at birth */
+
+	std::vector<std::pair<int, int>> excluded_objects;      /* Starting objects (tval, sval) never given */
 
 	std::vector<player_race_ability_type> abilities;        /* Abilities to be gained by level; ignores prereqs */
 };
