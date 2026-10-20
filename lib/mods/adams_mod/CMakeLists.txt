@@ -1,0 +1,4 @@
+INSTALL(DIRECTORY
+  edit
+  DESTINATION ${DEFAULT_PATH}/mods/adams_mod
+  )
