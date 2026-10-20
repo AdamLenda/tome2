@@ -636,12 +636,12 @@ go_bandit([]() {
 			describe("Adam's Mod: each Maia specialisation gets its approved kit", []() {
 
 				// What every Maia gets: Arkenstone, Boots of Feanor, Vilya,
-				// 3 Word of Recall scrolls and the general food.
-				std::vector<std::string> const every_maia { "A3", "A60", "A12", "70:11 x3", "80:35 x3-7" };
+				// Mattock of Nain, 3 Word of Recall scrolls and the general food.
+				std::vector<std::string> const every_maia { "A3", "A60", "A12", "A174", "70:11 x3", "80:35 x3-7" };
 
 				// Shared parts of the kits
 				std::vector<std::string> const warrior_rest {
-					"A126", "18:1 x40", "A17", "A214", "A30", "A39", "A59", "A6", "A11", "A174" };
+					"A126", "18:1 x40", "A17", "A214", "A30", "A39", "A59", "A6", "A11" };
 				std::vector<std::string> const mage_core { "A127", "A126", "A27", "A214", "A42", "A178", "A207", "A11" };
 				std::vector<std::string> const mage_core_colannon { "A127", "A126", "A27", "A48", "A42", "A178", "A207", "A11" };
 				std::vector<std::string> const all_tomes {
@@ -660,10 +660,10 @@ go_bandit([]() {
 					{ "Warrior", "Warrior", join({ { "A82" }, warrior_rest }) },
 					{ "Warrior", "Swordmaster", join({ { "A82" }, warrior_rest }) },
 					{ "Warrior", "Axemaster", join({ { "A102" }, warrior_rest }) },
-					{ "Warrior", "Haftedmaster", { "A117", "A126", "18:1 x40", "A17", "A214", "A39", "A59", "A6", "A11", "A174" } },
+					{ "Warrior", "Haftedmaster", { "A117", "A126", "18:1 x40", "A17", "A214", "A39", "A59", "A6", "A11" } },
 					{ "Warrior", "Polearmmaster", join({ { "A97" }, warrior_rest }) },
 					{ "Warrior", "Unbeliever", join({ { "A238" }, warrior_rest }) },
-					{ "Warrior", "Demonologist", { "A235", "A236", "A237", "A126", "18:1 x40", "A27", "A214", "A59", "A6", "A11", "A174" } },
+					{ "Warrior", "Demonologist", { "A235", "A236", "A237", "A126", "18:1 x40", "A27", "A214", "A59", "A6", "A11" } },
 					// Mage class
 					{ "Mage", "Mage", join({ mage_core, all_tomes }) },
 					{ "Mage", "Sorceror", join({ mage_core, all_tomes }) },
