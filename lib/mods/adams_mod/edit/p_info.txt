@@ -1708,6 +1708,7 @@ R:F:STR
 R:F:WIS
 R:C:Archer
 R:C:Mage
+R:C:Priest
 R:C:Warrior
 R:k:+000:+000:Magic-Device
 R:k:+000:+000:Spirituality

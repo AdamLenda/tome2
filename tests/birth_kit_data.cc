@@ -633,6 +633,23 @@ go_bandit([]() {
 				AssertThat(blocking, Equals(std::vector<std::string> {}));
 			});
 
+			it("Adam's Mod: Priest is a recommended class for a Maia", [&]() {
+				bool in_maia = false;
+				std::vector<std::string> classes;
+				for (auto const &line : read_lines(modules[2].edit_file("p_info.txt")))
+				{
+					if (boost::algorithm::starts_with(line, "R:N:"))
+					{
+						in_maia = boost::algorithm::ends_with(line, ":Maia");
+					}
+					else if (in_maia && boost::algorithm::starts_with(line, "R:C:"))
+					{
+						classes.push_back(line.substr(4));
+					}
+				}
+				AssertThat(classes, Contains("Priest"));
+			});
+
 			describe("Adam's Mod: each Maia specialisation gets its approved kit", []() {
 
 				// What every Maia gets: Arkenstone, Boots of Feanor, Vilya,
