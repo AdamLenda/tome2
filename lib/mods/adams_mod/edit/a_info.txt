@@ -4708,3 +4708,189 @@ F:IGNORE_FIRE
 F:SPECIAL_GENE
 D:This tome has no pages; dreams of Lorien pass its knowledge to
 D:whoever holds it.
+
+# The Holy Tome of Eru Iluvatar 'Ainulindale'
+# Indestructible starting prayer book for a Maia priest
+
+N:230:'Ainulindale'
+I:111:20:0
+W:50:100:30:25000
+P:0:1d1:0:0:0
+F:IGNORE_ACID
+F:IGNORE_COLD
+F:IGNORE_ELEC
+F:IGNORE_FIRE
+F:SPECIAL_GENE
+D:Bound in white and gold, it holds the themes that Eru propounded to
+D:the Ainur before the world was; the Music itself preserves it.
+
+
+# The Holy Tome of Manwe Sulimo 'Ilmarin'
+# Indestructible starting prayer book for a Maia priest
+
+N:231:'Ilmarin'
+I:111:21:0
+W:50:100:30:25000
+P:0:1d1:0:0:0
+F:IGNORE_ACID
+F:IGNORE_COLD
+F:IGNORE_ELEC
+F:IGNORE_FIRE
+F:SPECIAL_GENE
+D:Its sapphire covers are cool as the airs above Taniquetil, and no fire
+D:or flood may touch what the Elder King has blessed.
+
+
+# The War Tome of Tulkas 'Astaldo'
+# Indestructible starting prayer book for a Maia priest
+
+N:232:'Astaldo'
+I:111:22:0
+W:50:100:30:25000
+P:0:1d1:0:0:0
+F:IGNORE_ACID
+F:IGNORE_COLD
+F:IGNORE_ELEC
+F:IGNORE_FIRE
+F:SPECIAL_GENE
+D:Bound in dented bronze and smelling faintly of laughter and battle, it
+D:fears nothing, and like its master nothing can harm it.
+
+
+# The Forest Tome of Yavanna 'Ezellohar'
+# Indestructible starting prayer book for a Maia priest
+
+N:233:'Ezellohar'
+I:111:24:0
+W:50:100:30:25000
+P:0:1d1:0:0:0
+F:IGNORE_ACID
+F:IGNORE_COLD
+F:IGNORE_ELEC
+F:IGNORE_FIRE
+F:SPECIAL_GENE
+D:Green leaves still sprout from its spine, rooted in a little earth from
+D:the mound where the Two Trees once stood.
+
+
+# The Corrupted Tome of Melkor 'Utumno'
+# Indestructible starting prayer book for a Maia priest
+
+N:234:'Utumno'
+I:111:23:0
+W:50:100:30:25000
+P:0:1d1:0:0:0
+F:IGNORE_ACID
+F:IGNORE_COLD
+F:IGNORE_ELEC
+F:IGNORE_FIRE
+F:SPECIAL_GENE
+D:Its iron clasps are cold as the pits of Utumno; neither fire nor the
+D:wrath of the Valar has ever been able to unmake it.
+
+
+# The Demonblade of the Valaraukar
+# Gothmog's Demonblade (#181) without its curses: starting kit of a
+# Maia Demonologist
+
+N:235:of the Valaraukar
+I:115:55:0
+W:50:100:150:50000
+P:0:7d6:13:13:0
+F:BRAND_FIRE
+F:BRAND_POIS
+F:LITE1
+F:RES_MORGUL
+F:SHOW_MODS
+F:SLAY_DEMON
+F:SLAY_EVIL
+F:WIELD_CAST
+F:WOUNDING
+F:IGNORE_ACID
+F:IGNORE_COLD
+F:IGNORE_ELEC
+F:IGNORE_FIRE
+F:SPECIAL_GENE
+D:Forged in Angband for the Valaraukar, the fallen Maiar of fire, this
+D:blade has been cleansed of Morgoth's malice by one who kept faith.
+
+
+# The Demonshield of the Valaraukar
+# Gothmog's Demonshield (#182) without its curses
+
+N:236:of the Valaraukar
+I:115:56:4
+W:50:100:70:50000
+P:13:1d1:0:0:13
+F:DEX
+F:FEATHER
+F:FREE_ACT
+F:HOLD_LIFE
+F:INVIS
+F:SH_FIRE
+F:SUST_CON
+F:SUST_DEX
+F:SUST_STR
+F:WIELD_CAST
+F:IGNORE_ACID
+F:IGNORE_COLD
+F:IGNORE_ELEC
+F:IGNORE_FIRE
+F:SPECIAL_GENE
+D:A shield of black iron that once warded a Balrog; its fires now burn
+D:only against the enemies of the West.
+
+
+# The Demonhorn of the Valaraukar
+# Gothmog's Demonhorn (#183) without its curses, with INT instead of
+# a CHR penalty
+
+N:237:of the Valaraukar
+I:115:57:3
+W:50:100:30:50000
+P:2:1d1:0:0:13
+F:ESP_DEMON
+F:INT
+F:LITE2
+F:REGEN
+F:SEE_INVIS
+F:SLOW_DIGEST
+F:WIELD_CAST
+F:IGNORE_ACID
+F:IGNORE_COLD
+F:IGNORE_ELEC
+F:IGNORE_FIRE
+F:SPECIAL_GENE
+D:A crown of horns from the brow of a Valarauko, through which a Maia
+D:may hear the thoughts of every demon that walks in shadow.
+
+
+# The Dark Sword 'Angainor'
+# Unenchanted, since enchantment weakens the wielder's antimagic field:
+# starting kit of a Maia Unbeliever
+
+N:238:'Angainor'
+I:23:33:3
+W:50:100:70:60000
+P:0:5d7:0:0:0
+F:ANTIMAGIC_50
+F:CON
+F:DEX
+F:FREE_ACT
+F:SEE_INVIS
+F:SHOW_MODS
+F:SLAY_DEMON
+F:SLAY_EVIL
+F:SLAY_UNDEAD
+F:STR
+F:SUST_CON
+F:SUST_DEX
+F:SUST_STR
+F:IGNORE_ACID
+F:IGNORE_COLD
+F:IGNORE_ELEC
+F:IGNORE_FIRE
+F:SPECIAL_GENE
+f:ANTIMAGIC_50
+D:Named for the chain that Aule forged to bind Morgoth, this plain black
+D:blade holds no magic of its own, and no magic holds against it.
