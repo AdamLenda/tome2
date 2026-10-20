@@ -899,6 +899,13 @@ static void player_wear_outfit(std::vector<object_type> *objects)
 		}
 	}
 
+	/* Weapons are only wielded by those fighting with weapons (as in
+	   item_tester_hook_wear()); martial artists keep theirs in the pack */
+	if (p_ptr->melee_style != SKILL_MASTERY)
+	{
+		slot_counts.erase(INVEN_WIELD);
+	}
+
 	/* What could be put on */
 	std::vector<equip_candidate> candidates;
 	for (std::size_t i = 0; i < objects->size(); i++)
@@ -912,6 +919,7 @@ static void player_wear_outfit(std::vector<object_type> *objects)
 		c.number = o_ptr->number;
 		c.artifact = artifact_p(o_ptr);
 		c.cursed = cursed_p(o_ptr);
+		c.ultimate = bool(flags & TR_ULTIMATE);
 		c.value = object_value(o_ptr);
 		c.must_two_hand = bool(flags & TR_MUST2H);
 		c.could_two_hand = bool(flags & TR_COULD2H);

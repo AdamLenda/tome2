@@ -14,7 +14,7 @@
  *   quiver as a whole stack, and only if a launcher firing it is worn;
  * - weapons are placed before shields, and no shield goes on an arm
  *   whose weapon is two-handed (or can be used two-handed);
- * - cursed objects are never put on.
+ * - cursed objects are never put on, and only one "ultimate" object is.
  */
 
 #include <map>
@@ -36,6 +36,9 @@ struct equip_candidate
 
 	bool artifact = false;
 	bool cursed = false;
+
+	/* Only one ultimate object can be worn at a time */
+	bool ultimate = false;
 
 	/* Preference among objects of the same standing */
 	long value = 0;

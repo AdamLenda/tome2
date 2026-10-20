@@ -666,6 +666,18 @@ go_bandit([]() {
 				Equals(std::vector<std::string> { "111:50" }));
 		});
 
+		it("gives each artifact only once, at its first mention", [&]() {
+			must_parse_general(&general, 'O', "A:1");
+			must_parse_kit(&race, 'O', "A:2");
+			must_parse_kit(&race, 'O', "A:1");
+			must_parse_kit(&spec, 'O', "A:2");
+			must_parse_kit(&spec, 'O', "A:3");
+			must_parse_kit(&spec, 'O', "70:32:1");
+			must_parse_kit(&spec, 'O', "70:32:1");
+			AssertThat(show(assemble_birth_kit(general, levels(), who)),
+				Equals(std::vector<std::string> { "A1", "A2", "A3", "70:32", "70:32" }));
+		});
+
 		it("never excludes artifacts", [&]() {
 			must_parse_kit(&race, 'O', "A:1");
 			race.excluded = { { 39, 100 }, { 0, 0 } };

@@ -169,6 +169,17 @@ go_bandit([]() {
 			AssertThat(show(plan), Equals(std::vector<std::string> { at(7, INVEN_RING), at(3, INVEN_RING + 1) }));
 		});
 
+		it("puts on only one ultimate object", [&]() {
+			auto staff = artifact(0, INVEN_WIELD);
+			staff.ultimate = true;
+			staff.value = 9000000;
+			auto ring = artifact(1, INVEN_RING);
+			ring.ultimate = true;
+			auto other = artifact(2, INVEN_RING);
+			AssertThat(show(plan_birth_equipment({ ring, staff, other }, human_body())),
+				Equals(std::vector<std::string> { at(0, INVEN_WIELD), at(2, INVEN_RING) }));
+		});
+
 		describe("ammunition", [&]() {
 
 			it("goes to the quiver as a whole stack with a matching launcher", [&]() {

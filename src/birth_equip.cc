@@ -34,9 +34,17 @@ std::vector<equip_choice> plan_birth_equipment(
 		return (it == slot_counts.end()) ? 0 : it->second;
 	};
 
+	/* Only one ultimate object can be worn */
+	bool ultimate_worn = false;
+
+	auto wearable = [&ultimate_worn](equip_candidate const *c) {
+		return !(c->ultimate && ultimate_worn);
+	};
+
 	auto wear = [&](equip_candidate const *c, int position, int number) {
 		worn[c->slot].resize(std::max<std::size_t>(worn[c->slot].size(), position + 1), nullptr);
 		worn[c->slot][position] = c;
+		ultimate_worn = ultimate_worn || c->ultimate;
 		choices.push_back({ c->id, c->slot + position, number });
 	};
 
@@ -59,7 +67,7 @@ std::vector<equip_choice> plan_birth_equipment(
 	/* Everything but shields and ammunition */
 	for (auto c : ordered)
 	{
-		if ((c->slot == INVEN_ARM) || (c->slot == INVEN_AMMO)) continue;
+		if ((c->slot == INVEN_ARM) || (c->slot == INVEN_AMMO) || !wearable(c)) continue;
 
 		int position = free_position(c->slot, anywhere);
 		if (position >= 0)
@@ -71,7 +79,7 @@ std::vector<equip_choice> plan_birth_equipment(
 	/* Shields, on arms whose weapon is not (possibly) two-handed */
 	for (auto c : ordered)
 	{
-		if (c->slot != INVEN_ARM) continue;
+		if ((c->slot != INVEN_ARM) || !wearable(c)) continue;
 
 		int position = free_position(INVEN_ARM, [&worn](int k) {
 			auto const &weapons = worn[INVEN_WIELD];
@@ -88,7 +96,7 @@ std::vector<equip_choice> plan_birth_equipment(
 	/* Ammunition, as a whole stack, if a worn launcher fires it */
 	for (auto c : ordered)
 	{
-		if (c->slot != INVEN_AMMO) continue;
+		if ((c->slot != INVEN_AMMO) || !wearable(c)) continue;
 
 		auto const &launchers = worn[INVEN_BOW];
 		bool fired = std::any_of(launchers.begin(), launchers.end(), [c](equip_candidate const *l) {

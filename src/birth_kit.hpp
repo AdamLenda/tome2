@@ -166,7 +166,7 @@ std::set<std::string> birth_kit_tags(std::vector<birth_kit const *> const &level
 /**
  * The objects a character starts with: the general objects whose filter
  * matches, then each level's objects in order, leaving out non-artifact
- * objects excluded by any level.  The character's tags are taken from
+ * objects excluded by any level and repeated mentions of an artifact.  The character's tags are taken from
  * the levels; any tags already in 'who' are kept.
  */
 std::vector<birth_object> assemble_birth_kit(

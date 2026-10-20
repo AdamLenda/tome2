@@ -458,14 +458,29 @@ std::vector<birth_object> assemble_birth_kit(
 		excluded.insert(excluded.end(), level->excluded.begin(), level->excluded.end());
 	}
 
-	/* General objects, then each level's */
+	/* General objects, then each level's; each artifact only once */
 	std::vector<birth_object> objects;
+	std::set<int> artifacts;
+
+	auto give = [&objects, &artifacts, &excluded](birth_object const &o) {
+		if (is_excluded(o, excluded))
+		{
+			return;
+		}
+
+		if ((o.type == birth_object::kind::ARTIFACT) && !artifacts.insert(o.artifact_idx).second)
+		{
+			return;
+		}
+
+		objects.push_back(o);
+	};
 
 	for (auto const &p : general.objects)
 	{
-		if (birth_filter_matches(p.first, tagged) && !is_excluded(p.second, excluded))
+		if (birth_filter_matches(p.first, tagged))
 		{
-			objects.push_back(p.second);
+			give(p.second);
 		}
 	}
 
@@ -475,10 +490,7 @@ std::vector<birth_object> assemble_birth_kit(
 
 		for (auto const &o : level->objects)
 		{
-			if (!is_excluded(o, excluded))
-			{
-				objects.push_back(o);
-			}
+			give(o);
 		}
 	}
 
