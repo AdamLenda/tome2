@@ -9,6 +9,7 @@
 
 #include "ability_type.hpp"
 #include "artifact_type.hpp"
+#include "birth_kit.hpp"
 #include "corrupt.hpp"
 #include "cmd4.hpp"
 #include "cmd5.hpp"
@@ -739,58 +740,32 @@ static void player_wipe()
 
 
 /*
- * Does the player's race forbid this starting object?
+ * The starting-equipment levels of the player: race, subrace, class
+ * and class specialty.
  */
-static bool race_excludes_object(int tval, int sval)
+static std::vector<birth_kit const *> player_birth_kits()
 {
-	for (auto const &excluded : rp_ptr->excluded_objects)
+	return { &rp_ptr->kit, &rmp_ptr->kit, &cp_ptr->kit, &spp_ptr->kit };
+}
+
+
+/*
+ * Does any level of the player forbid this starting object?
+ */
+static bool birth_kit_excludes_object(int tval, int sval)
+{
+	for (auto kit : player_birth_kits())
 	{
-		if ((excluded.first == tval) && (excluded.second == sval))
+		for (auto const &excluded : kit->excluded)
 		{
-			return true;
+			if ((excluded.first == tval) && (excluded.second == sval))
+			{
+				return true;
+			}
 		}
 	}
 
 	return false;
-}
-
-
-/* Create an object */
-static void outfit_obj(object_proto const *proto)
-{
-	if (race_excludes_object(proto->tval, proto->sval))
-	{
-		return;
-	}
-
-	object_type forge;
-
-	/* Get local object */
-	auto q_ptr = &forge;
-	q_ptr->pval = 0;
-	q_ptr->pval2 = 0;
-
-	/* Hack -- Give the player an object */
-	object_prep(q_ptr, lookup_kind(proto->tval, proto->sval));
-
-	if (proto->pval)
-	{
-		q_ptr->pval = proto->pval;
-	}
-
-	/* These objects are "storebought" */
-	q_ptr->number = damroll(proto->dd, proto->ds);
-
-	inven_carry(q_ptr, false);
-}
-
-
-static void outfit_objs(std::vector<object_proto> const &protos)
-{
-	for (auto const &proto: protos)
-	{
-		outfit_obj(&proto);
-	}
 }
 
 
@@ -799,7 +774,7 @@ static void outfit_objs(std::vector<object_proto> const &protos)
  */
 static void player_outfit_object(int qty, int tval, int sval)
 {
-	if (race_excludes_object(tval, sval))
+	if (birth_kit_excludes_object(tval, sval))
 	{
 		return;
 	}
@@ -827,7 +802,7 @@ static void player_outfit_spellbook(const char *spell_name)
 	}
 	else
 	{
-		quit_fmt("Couldn't find spell '%s'\n");
+		quit_fmt("Couldn't find spell '%s'\n", spell_name);
 	}
 }
 
@@ -859,6 +834,60 @@ static void player_outfit_artifact(int a_idx)
 	/* Start with it fully identified */
 	object_aware(q_ptr);
 	object_known(q_ptr);
+
+	inven_carry(q_ptr, false);
+}
+
+
+/*
+ * Give the player a starting object from p_info.txt.
+ */
+static void outfit_birth_object(birth_object const &o)
+{
+	switch (o.type)
+	{
+	case birth_object::kind::ARTIFACT:
+		player_outfit_artifact(o.artifact_idx);
+		return;
+	case birth_object::kind::SPELLBOOK:
+		player_outfit_spellbook(o.spell.c_str());
+		return;
+	case birth_object::kind::OBJECT:
+		break;
+	}
+
+	object_type forge;
+	object_type *q_ptr = &forge;
+
+	/* Hack -- Give the player an object */
+	object_prep(q_ptr, lookup_kind(o.tval, o.sval));
+
+	if (o.pval)
+	{
+		q_ptr->pval = o.pval;
+	}
+
+	/* These objects are "storebought" */
+	q_ptr->number = o.number.roll();
+
+	/* Light source fuel */
+	if (o.fuel)
+	{
+		q_ptr->timeout = o.fuel->roll();
+	}
+
+	/* Mimic cloak form */
+	if (!o.form.empty())
+	{
+		auto form = resolve_mimic_name(o.form.c_str());
+
+		if (form < 0)
+		{
+			quit_fmt("Couldn't find mimic form '%s'\n", o.form.c_str());
+		}
+
+		q_ptr->pval2 = form;
+	}
 
 	inven_carry(q_ptr, false);
 }
@@ -1019,7 +1048,7 @@ static void player_outfit()
 		player_outfit_object(qty, TV_FOOD, SV_FOOD_RATION);
 	}
 
-	if (!race_excludes_object(TV_LITE, SV_LITE_TORCH))
+	if (!birth_kit_excludes_object(TV_LITE, SV_LITE_TORCH))
 	{
 		object_type forge;
 		object_type *q_ptr = &forge;
@@ -1030,16 +1059,16 @@ static void player_outfit()
 		inven_carry(q_ptr, false);
 	}
 
-	/* Outfit the player with starting items */
-	outfit_objs(rp_ptr->object_protos);
-	outfit_objs(rmp_ptr->object_protos);
-	outfit_objs(cp_ptr->object_protos);
-	outfit_objs(cp_ptr->spec[p_ptr->pspec].object_protos);
+	/* Outfit the player with the starting equipment from p_info.txt */
+	birth_character who;
+	who.race = rp_ptr->title;
+	who.subrace = rmp_ptr->title;
+	who.class_name = cp_ptr->title;
+	who.spec = spp_ptr->title;
 
-	/* Race starting artifacts */
-	for (auto a_idx : rp_ptr->artifact_protos)
+	for (auto const &o : assemble_birth_kit(game->edit_data.gen_kit, player_birth_kits(), who))
 	{
-		player_outfit_artifact(a_idx);
+		outfit_birth_object(o);
 	}
 }
 

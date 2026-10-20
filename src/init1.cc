@@ -2,6 +2,7 @@
 
 #include "ability_type.hpp"
 #include "artifact_type.hpp"
+#include "birth_kit.hpp"
 #include "cave.hpp"
 #include "cave_type.hpp"
 #include "dungeon_info_type.hpp"
@@ -806,32 +807,25 @@ static int read_skill_modifiers(skill_modifiers *skill_modifiers, const char *bu
 
 
 /*
- * Read prototype objects
+ * Read a starting-equipment field ('O', 'X' or 'T') of a race,
+ * subrace, class or specialty; 'buf' points at the field letter.
+ * Returns 0 if read, 1 on error and -1 if it is another field.
  */
-static int read_proto_object(std::vector<object_proto> *protos, const char *buf)
+static int read_birth_kit_field(birth_kit *kit, const char *buf)
 {
-	int s0, s1, s2, s3, s4;
+	if (!buf[0] || (buf[1] != ':')) return -1;
 
-	if (5 != sscanf(buf, "%d:%d:%d:%dd%d", &s0, &s1, &s4, &s2, &s3))
+	switch (parse_birth_kit_field(buf[0], buf + 2, kit))
 	{
-		s4 = 0;
-
-		if (4 != sscanf(buf, "%d:%d:%dd%d", &s0, &s1, &s2, &s3))
-		{
-			return 1;
-		}
+	case birth_field_result::OK:
+		return 0;
+	case birth_field_result::ERROR:
+		return 1;
+	case birth_field_result::NOT_HANDLED:
+		break;
 	}
 
-	object_proto proto;
-	proto.pval = s4;
-	proto.tval = s0;
-	proto.sval = s1;
-	proto.dd = s2;
-	proto.ds = s3;
-
-	protos->emplace_back(proto);
-
-	return 0;
+	return -1;
 }
 
 
@@ -903,6 +897,7 @@ errr init_player_info_txt(FILE *fp)
 	auto &race_info = game->edit_data.race_info;
 	auto &race_mod_info = game->edit_data.race_mod_info;
 	auto &gen_skill = game->edit_data.gen_skill;
+	auto &gen_kit = game->edit_data.gen_kit;
 
 	int lev = 1;
 	int tit_idx = 0;
@@ -950,6 +945,23 @@ errr init_player_info_txt(FILE *fp)
 
 			/* Next... */
 			continue;
+		}
+
+		/* Process 'G:O' and 'G:W' for "General starting equipment" */
+		if ((buf[0] == 'G') && (buf[3] == ':'))
+		{
+			auto result = parse_general_birth_field(buf[2], buf + 4, &gen_kit);
+
+			if (result == birth_field_result::ERROR)
+			{
+				return 1;
+			}
+
+			if (result == birth_field_result::OK)
+			{
+				/* Next... */
+				continue;
+			}
 		}
 
 		/* Process 'N' for "New/Number/Name" */
@@ -1142,45 +1154,26 @@ errr init_player_info_txt(FILE *fp)
 			continue;
 		}
 
-		/* Process 'O' for "Object birth" */
-		if ((buf[0] == 'R') && (buf[2] == 'O'))
+		/* Process 'O', 'X' and 'T' for "starting equipment" */
+		if (buf[0] == 'R')
 		{
-			if (read_proto_object(&rp_ptr->object_protos, buf + 4))
-			{
-				return 1;
-			}
+			int err = read_birth_kit_field(&rp_ptr->kit, buf + 2);
 
-			/* Next... */
-			continue;
+			if (err > 0) return 1;
+			if (err == 0) continue;
 		}
 
-		/* Process 'A' for "Artifact birth" (a_info index) */
+		/* Process 'A' for "Artifact birth", the same as 'O:A:' */
 		if ((buf[0] == 'R') && (buf[2] == 'A'))
 		{
-			int a_idx;
+			auto o = parse_birth_object(std::string("A:") + (buf + 4));
 
-			if (1 != sscanf(buf + 4, "%d", &a_idx))
+			if (!o)
 			{
 				return 1;
 			}
 
-			rp_ptr->artifact_protos.push_back(a_idx);
-
-			/* Next... */
-			continue;
-		}
-
-		/* Process 'X' for "eXcluded starting object" (tval:sval) */
-		if ((buf[0] == 'R') && (buf[2] == 'X'))
-		{
-			int tval, sval;
-
-			if (2 != sscanf(buf + 4, "%d:%d", &tval, &sval))
-			{
-				return 1;
-			}
-
-			rp_ptr->excluded_objects.emplace_back(tval, sval);
+			rp_ptr->kit.objects.push_back(*o);
 
 			/* Next... */
 			continue;
@@ -1392,16 +1385,13 @@ errr init_player_info_txt(FILE *fp)
 			continue;
 		}
 
-		/* Process 'O' for "Object birth" */
-		if ((buf[0] == 'S') && (buf[2] == 'O'))
+		/* Process 'O', 'X' and 'T' for "starting equipment" */
+		if (buf[0] == 'S')
 		{
-			if (read_proto_object(&rmp_ptr->object_protos, buf + 4))
-			{
-				return 1;
-			}
+			int err = read_birth_kit_field(&rmp_ptr->kit, buf + 2);
 
-			/* Next... */
-			continue;
+			if (err > 0) return 1;
+			if (err == 0) continue;
 		}
 
 		/* Process 'A' for "Allowed races" (multiple lines) */
@@ -1522,16 +1512,13 @@ errr init_player_info_txt(FILE *fp)
 			continue;
 		}
 
-		/* Process 'O' for "Object birth" */
-		if ((buf[0] == 'C') && (buf[2] == 'O'))
+		/* Process 'O', 'X' and 'T' for "starting equipment" */
+		if ((buf[0] == 'C') && (buf[2] != 'a'))
 		{
-			if (read_proto_object(&c_ptr->object_protos, buf + 4))
-			{
-				return 1;
-			}
+			int err = read_birth_kit_field(&c_ptr->kit, buf + 2);
 
-			/* Next... */
-			continue;
+			if (err > 0) return 1;
+			if (err == 0) continue;
 		}
 
 		/* Process 'E' for "body parts" */
@@ -1766,16 +1753,12 @@ errr init_player_info_txt(FILE *fp)
 				continue;
 			}
 
-			/* Process 'O' for "Object birth" */
-			if (buf[4] == 'O')
+			/* Process 'O', 'X' and 'T' for "starting equipment" */
 			{
-				if (read_proto_object(&s_ptr->object_protos, buf + 6))
-				{
-					return 1;
-				}
+				int err = read_birth_kit_field(&s_ptr->kit, buf + 4);
 
-				/* Next... */
-				continue;
+				if (err > 0) return 1;
+				if (err == 0) continue;
 			}
 
 			/* Process 'g' for "gods" */

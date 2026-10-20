@@ -2,8 +2,8 @@
 
 #include "body.hpp"
 #include "h-basic.hpp"
+#include "birth_kit.hpp"
 #include "object_flag_set.hpp"
-#include "object_proto.hpp"
 #include "player_defs.hpp"
 #include "player_level_flag.hpp"
 #include "player_race_flag_set.hpp"
@@ -34,7 +34,7 @@ struct player_class
 	s16b blow_mul = 0;
 	s16b extra_blows = 0;
 
-	std::vector<object_proto> object_protos;
+	birth_kit kit;                                       /* Starting equipment */
 
 	char body_parts[BODY_MAX] { };                          /* To help to decide what to use when body changing */
 

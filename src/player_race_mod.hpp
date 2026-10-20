@@ -2,8 +2,8 @@
 
 #include "body.hpp"
 #include "h-basic.hpp"
+#include "birth_kit.hpp"
 #include "object_flag_set.hpp"
-#include "object_proto.hpp"
 #include "player_defs.hpp"
 #include "player_level_flag.hpp"
 #include "player_race_ability_type.hpp"
@@ -46,7 +46,7 @@ struct player_race_mod
 
 	struct skill_modifiers skill_modifiers;
 
-	std::vector<object_proto> object_protos;
+	birth_kit kit;                                          /* Starting equipment */
 
 	std::vector<player_race_ability_type> abilities;        /* Abilities to be gained by level; ignores prereqs */
 };
