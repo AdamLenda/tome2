@@ -1,5 +1,6 @@
 #include "birth_kit.hpp"
 #include <bandit/bandit.h>
+#include <map>
 using namespace bandit;
 
 //
@@ -62,6 +63,34 @@ std::vector<std::string> show(std::vector<birth_object> const &os)
 		out.push_back(show(o));
 	}
 	return out;
+}
+
+// A filter written back as text, e.g. "RACE:Maia&SPEC:Mage|Sorceror"
+std::string show(birth_filter const &f)
+{
+	static const std::map<birth_condition::kind, std::string> kinds {
+		{ birth_condition::kind::RACE, "RACE" },
+		{ birth_condition::kind::SUBRACE, "SUBRACE" },
+		{ birth_condition::kind::CLASS, "CLASS" },
+		{ birth_condition::kind::SPEC, "SPEC" },
+		{ birth_condition::kind::TAG, "TAG" },
+	};
+
+	if (f.conditions.empty())
+	{
+		return "*";
+	}
+
+	std::string s;
+	for (auto const &c : f.conditions)
+	{
+		s += (s.empty() ? "" : "&") + kinds.at(c.type) + ":";
+		for (std::size_t i = 0; i < c.names.size(); i++)
+		{
+			s += (i ? "|" : "") + c.names[i];
+		}
+	}
+	return s;
 }
 
 birth_character character(std::string race, std::string subrace, std::string class_name, std::string spec)
@@ -282,32 +311,58 @@ go_bandit([]() {
 
 	describe("parse_birth_filter", []() {
 
-		it("parses '*'", [&]() {
-			AssertThat(must_parse_filter("*").type == birth_filter::kind::ANY, Is().True());
+		it("parses '*' as no conditions", [&]() {
+			AssertThat(must_parse_filter("*").conditions.size(), Equals(0u));
 		});
 
 		it("parses each kind with a single name", [&]() {
-			AssertThat(must_parse_filter("RACE:Maia").type == birth_filter::kind::RACE, Is().True());
-			AssertThat(must_parse_filter("SUBRACE:Red").type == birth_filter::kind::SUBRACE, Is().True());
-			AssertThat(must_parse_filter("CLASS:Mage").type == birth_filter::kind::CLASS, Is().True());
-			AssertThat(must_parse_filter("SPEC:Priest(Eru)").type == birth_filter::kind::SPEC, Is().True());
-			AssertThat(must_parse_filter("TAG:spellcaster").type == birth_filter::kind::TAG, Is().True());
-			AssertThat(must_parse_filter("SPEC:Priest(Eru)").names, Equals(std::vector<std::string> { "Priest(Eru)" }));
+			for (auto s : { "RACE:Maia", "SUBRACE:Red", "CLASS:Mage", "SPEC:Priest(Eru)", "TAG:spellcaster" })
+			{
+				auto f = must_parse_filter(s);
+				AssertThat(f.conditions.size(), Equals(1u));
+				AssertThat(show(f), Equals(s));
+			}
+			auto f = must_parse_filter("SPEC:Priest(Eru)");
+			AssertThat(f.conditions[0].type == birth_condition::kind::SPEC, Is().True());
+			AssertThat(f.conditions[0].names, Equals(std::vector<std::string> { "Priest(Eru)" }));
 		});
 
 		it("splits names on '|'", [&]() {
-			AssertThat(must_parse_filter("SPEC:Ranger|Geomancer|Dark-Priest").names,
+			AssertThat(must_parse_filter("SPEC:Ranger|Geomancer|Dark-Priest").conditions[0].names,
 				Equals(std::vector<std::string> { "Ranger", "Geomancer", "Dark-Priest" }));
 		});
 
+		it("parses conditions joined by '&'", [&]() {
+			auto f = must_parse_filter("RACE:Maia&CLASS:Mage");
+			AssertThat(f.conditions.size(), Equals(2u));
+			AssertThat(f.conditions[0].type == birth_condition::kind::RACE, Is().True());
+			AssertThat(f.conditions[0].names, Equals(std::vector<std::string> { "Maia" }));
+			AssertThat(f.conditions[1].type == birth_condition::kind::CLASS, Is().True());
+			AssertThat(f.conditions[1].names, Equals(std::vector<std::string> { "Mage" }));
+		});
+
+		it("parses several names within joined conditions", [&]() {
+			AssertThat(show(must_parse_filter("RACE:Maia&SPEC:Mage|Sorceror|Warper")),
+				Equals("RACE:Maia&SPEC:Mage|Sorceror|Warper"));
+			AssertThat(show(must_parse_filter("RACE:Maia|Elf&SUBRACE:Classical&CLASS:Mage&TAG:x|y")),
+				Equals("RACE:Maia|Elf&SUBRACE:Classical&CLASS:Mage&TAG:x|y"));
+		});
+
+		it("allows the same kind twice", [&]() {
+			AssertThat(must_parse_filter("TAG:spellcaster&TAG:immortal").conditions.size(), Equals(2u));
+		});
+
 		it("ignores trailing whitespace", [&]() {
-			AssertThat(must_parse_filter("TAG:spellcaster \r").names, Equals(std::vector<std::string> { "spellcaster" }));
-			AssertThat(must_parse_filter("* ").type == birth_filter::kind::ANY, Is().True());
+			AssertThat(must_parse_filter("TAG:spellcaster \r").conditions[0].names, Equals(std::vector<std::string> { "spellcaster" }));
+			AssertThat(must_parse_filter("* ").conditions.size(), Equals(0u));
+			AssertThat(show(must_parse_filter("RACE:Maia&CLASS:Mage \r")), Equals("RACE:Maia&CLASS:Mage"));
 		});
 
 		it("rejects malformed filters", [&]() {
 			for (auto s : { "", "RACE", "RACE:", "RACE:Maia|", "RACE:|Maia", "RACE:Maia||Elf",
-			                "GOD:Eru", "race:Maia", "*:Maia", "**" })
+			                "GOD:Eru", "race:Maia", "*:Maia", "**",
+			                "RACE:Maia&", "&RACE:Maia", "RACE:Maia&&CLASS:Mage", "&", "*&RACE:Maia",
+			                "RACE:Maia&*", "RACE:Maia&GOD:Eru", "RACE:Maia&CLASS:", "RACE:Maia & CLASS:Mage" })
 			{
 				AssertThat(bool(parse_birth_filter(s)), Is().False());
 			}
@@ -356,6 +411,26 @@ go_bandit([]() {
 			AssertThat(birth_filter_matches(must_parse_filter("TAG:Immortal"), who), Is().True());
 			AssertThat(birth_filter_matches(must_parse_filter("TAG:archer|immortal"), who), Is().True());
 			AssertThat(birth_filter_matches(must_parse_filter("TAG:archer"), who), Is().False());
+		});
+
+		it("matches joined conditions only if all of them match", [&]() {
+			AssertThat(birth_filter_matches(must_parse_filter("RACE:Maia&CLASS:Mage"), who), Is().True());
+			AssertThat(birth_filter_matches(must_parse_filter("RACE:Maia&CLASS:Warrior"), who), Is().False());
+			AssertThat(birth_filter_matches(must_parse_filter("RACE:Elf&CLASS:Mage"), who), Is().False());
+			AssertThat(birth_filter_matches(must_parse_filter("RACE:Elf&CLASS:Warrior"), who), Is().False());
+			AssertThat(birth_filter_matches(must_parse_filter("RACE:Maia&SUBRACE:Classical&CLASS:Mage&SPEC:Geomancer&TAG:immortal"), who), Is().True());
+			AssertThat(birth_filter_matches(must_parse_filter("RACE:Maia&SUBRACE:Classical&CLASS:Mage&SPEC:Geomancer&TAG:archer"), who), Is().False());
+		});
+
+		it("matches joined conditions with several names each", [&]() {
+			AssertThat(birth_filter_matches(must_parse_filter("RACE:Maia&SPEC:Mage|Geomancer|Warper"), who), Is().True());
+			AssertThat(birth_filter_matches(must_parse_filter("RACE:Maia&SPEC:Mage|Sorceror|Warper"), who), Is().False());
+			AssertThat(birth_filter_matches(must_parse_filter("RACE:Elf|Maia&SPEC:Geomancer"), who), Is().True());
+		});
+
+		it("matches two tag conditions only if both tags are present", [&]() {
+			AssertThat(birth_filter_matches(must_parse_filter("TAG:spellcaster&TAG:immortal"), who), Is().True());
+			AssertThat(birth_filter_matches(must_parse_filter("TAG:spellcaster&TAG:archer"), who), Is().False());
 		});
 
 	});
@@ -413,7 +488,7 @@ go_bandit([]() {
 			general_birth_kit kit;
 			must_parse_general(&kit, 'O', "8:20:1");
 			AssertThat(kit.objects.size(), Equals(1u));
-			AssertThat(kit.objects[0].first.type == birth_filter::kind::ANY, Is().True());
+			AssertThat(show(kit.objects[0].first), Equals("*"));
 		});
 
 		it("applies each 'W' to the objects that follow it", [&]() {
@@ -425,10 +500,20 @@ go_bandit([]() {
 			must_parse_general(&kit, 'W', "*");
 			must_parse_general(&kit, 'O', "70:11:1");
 			AssertThat(kit.objects.size(), Equals(4u));
-			AssertThat(kit.objects[0].first.type == birth_filter::kind::ANY, Is().True());
-			AssertThat(kit.objects[1].first.type == birth_filter::kind::TAG, Is().True());
-			AssertThat(kit.objects[2].first.type == birth_filter::kind::TAG, Is().True());
-			AssertThat(kit.objects[3].first.type == birth_filter::kind::ANY, Is().True());
+			AssertThat(show(kit.objects[0].first), Equals("*"));
+			AssertThat(show(kit.objects[1].first), Equals("TAG:spellcaster"));
+			AssertThat(show(kit.objects[2].first), Equals("TAG:spellcaster"));
+			AssertThat(show(kit.objects[3].first), Equals("*"));
+		});
+
+		it("applies a joined 'W' to the objects that follow it", [&]() {
+			general_birth_kit kit;
+			must_parse_general(&kit, 'W', "RACE:Maia&SPEC:Mage|Sorceror");
+			must_parse_general(&kit, 'O', "A:219");
+			must_parse_general(&kit, 'W', "RACE:Maia&CLASS:Warrior");
+			must_parse_general(&kit, 'O', "A:120");
+			AssertThat(show(kit.objects[0].first), Equals("RACE:Maia&SPEC:Mage|Sorceror"));
+			AssertThat(show(kit.objects[1].first), Equals("RACE:Maia&CLASS:Warrior"));
 		});
 
 		it("reports errors", [&]() {
@@ -436,7 +521,8 @@ go_bandit([]() {
 			AssertThat(parse_general_birth_field('O', "70", &kit) == birth_field_result::ERROR, Is().True());
 			AssertThat(parse_general_birth_field('W', "GOD:Eru", &kit) == birth_field_result::ERROR, Is().True());
 			AssertThat(kit.objects.size(), Equals(0u));
-			AssertThat(kit.current_filter.type == birth_filter::kind::ANY, Is().True());
+			AssertThat(parse_general_birth_field('W', "RACE:Maia&", &kit) == birth_field_result::ERROR, Is().True());
+			AssertThat(kit.current_filter.conditions.size(), Equals(0u));
 		});
 
 		it("leaves other fields alone, including race-level ones", [&]() {
@@ -506,6 +592,27 @@ go_bandit([]() {
 			must_parse_general(&general, 'O', "4:4:1");
 			AssertThat(show(assemble_birth_kit(general, levels(), who)),
 				Equals(std::vector<std::string> { "1:1", "3:3", "4:4" }));
+		});
+
+		it("gives objects behind a joined filter only to characters matching all of it", [&]() {
+			must_parse_general(&general, 'O', "80:35:3-7");
+			must_parse_general(&general, 'W', "RACE:Maia&SPEC:Mage|Sorceror");
+			must_parse_general(&general, 'O', "A:219");
+			must_parse_general(&general, 'W', "RACE:Maia&CLASS:Warrior");
+			must_parse_general(&general, 'O', "A:120");
+
+			AssertThat(show(assemble_birth_kit(general, levels(), character("Maia", "Classical", "Mage", "Mage"))),
+				Equals(std::vector<std::string> { "80:35", "A219" }));
+			AssertThat(show(assemble_birth_kit(general, levels(), character("Maia", "Classical", "Mage", "Sorceror"))),
+				Equals(std::vector<std::string> { "80:35", "A219" }));
+			AssertThat(show(assemble_birth_kit(general, levels(), character("Maia", "Classical", "Mage", "Necromancer"))),
+				Equals(std::vector<std::string> { "80:35" }));
+			AssertThat(show(assemble_birth_kit(general, levels(), character("Maia", "Classical", "Warrior", "Axemaster"))),
+				Equals(std::vector<std::string> { "80:35", "A120" }));
+			AssertThat(show(assemble_birth_kit(general, levels(), character("Human", "Classical", "Mage", "Mage"))),
+				Equals(std::vector<std::string> { "80:35" }));
+			AssertThat(show(assemble_birth_kit(general, levels(), character("Human", "Classical", "Warrior", "Warrior"))),
+				Equals(std::vector<std::string> { "80:35" }));
 		});
 
 		it("matches general objects on tags from any level", [&]() {

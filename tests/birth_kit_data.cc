@@ -121,23 +121,27 @@ std::string show(birth_object const &o)
 
 std::string show(birth_filter const &f)
 {
-	static const std::map<birth_filter::kind, std::string> kinds {
-		{ birth_filter::kind::RACE, "RACE" },
-		{ birth_filter::kind::SUBRACE, "SUBRACE" },
-		{ birth_filter::kind::CLASS, "CLASS" },
-		{ birth_filter::kind::SPEC, "SPEC" },
-		{ birth_filter::kind::TAG, "TAG" },
+	static const std::map<birth_condition::kind, std::string> kinds {
+		{ birth_condition::kind::RACE, "RACE" },
+		{ birth_condition::kind::SUBRACE, "SUBRACE" },
+		{ birth_condition::kind::CLASS, "CLASS" },
+		{ birth_condition::kind::SPEC, "SPEC" },
+		{ birth_condition::kind::TAG, "TAG" },
 	};
 
-	if (f.type == birth_filter::kind::ANY)
+	if (f.conditions.empty())
 	{
 		return "*";
 	}
 
-	std::string s = kinds.at(f.type) + ":";
-	for (std::size_t i = 0; i < f.names.size(); i++)
+	std::string s;
+	for (auto const &c : f.conditions)
 	{
-		s += (i ? "|" : "") + f.names[i];
+		s += (s.empty() ? "" : "&") + kinds.at(c.type) + ":";
+		for (std::size_t i = 0; i < c.names.size(); i++)
+		{
+			s += (i ? "|" : "") + c.names[i];
+		}
 	}
 	return s;
 }

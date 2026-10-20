@@ -15,9 +15,12 @@
  * The general section additionally accepts:
  *
  *   W:<filter>            the G:O lines that follow apply only to
- *                         characters matching the filter; one of
- *                         '*', RACE:, SUBRACE:, CLASS:, SPEC: or TAG:
- *                         followed by '|'-separated names.
+ *                         characters matching the filter: '*' for
+ *                         everyone, or conditions joined by '&' that
+ *                         must all match, each one of RACE:, SUBRACE:,
+ *                         CLASS:, SPEC: or TAG: followed by
+ *                         '|'-separated names (any of which matches),
+ *                         e.g. RACE:Maia&SPEC:Mage|Sorceror
  *
  * Numbers are "N", "A-B" (uniform) or "XdY" (dice), optionally
  * followed by "*M" to multiply the result.  Object keys are
@@ -84,15 +87,25 @@ struct birth_object
 boost::optional<birth_object> parse_birth_object(std::string const &s);
 
 /**
- * Filter for the general section's starting objects.
+ * One condition of a filter: the character's race, subrace, class,
+ * specialty or one of its tags must be one of the names.
+ */
+struct birth_condition
+{
+	enum class kind { RACE, SUBRACE, CLASS, SPEC, TAG };
+
+	kind type = kind::RACE;
+
+	std::vector<std::string> names;
+};
+
+/**
+ * Filter for the general section's starting objects: all conditions
+ * must match; no conditions matches everyone.
  */
 struct birth_filter
 {
-	enum class kind { ANY, RACE, SUBRACE, CLASS, SPEC, TAG };
-
-	kind type = kind::ANY;
-
-	std::vector<std::string> names;
+	std::vector<birth_condition> conditions;
 };
 
 boost::optional<birth_filter> parse_birth_filter(std::string const &s);

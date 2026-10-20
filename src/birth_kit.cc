@@ -277,33 +277,51 @@ boost::optional<birth_object> parse_birth_object(std::string const &text)
 	return o;
 }
 
+/*
+ * Parse one condition of a filter: <KIND>:<name>[|<name>...]
+ */
+static boost::optional<birth_condition> parse_birth_condition(std::string const &s)
+{
+	auto colon = s.find(':');
+	if (colon == std::string::npos) return boost::none;
+
+	birth_condition c;
+
+	auto kind = s.substr(0, colon);
+	if (kind == "RACE") c.type = birth_condition::kind::RACE;
+	else if (kind == "SUBRACE") c.type = birth_condition::kind::SUBRACE;
+	else if (kind == "CLASS") c.type = birth_condition::kind::CLASS;
+	else if (kind == "SPEC") c.type = birth_condition::kind::SPEC;
+	else if (kind == "TAG") c.type = birth_condition::kind::TAG;
+	else return boost::none;
+
+	c.names = split(s.substr(colon + 1), '|');
+	for (auto const &name : c.names)
+	{
+		if (name.empty() || (name != boost::algorithm::trim_copy(name))) return boost::none;
+	}
+
+	return c;
+}
+
 boost::optional<birth_filter> parse_birth_filter(std::string const &text)
 {
 	auto s = trim_right(text);
 
 	birth_filter f;
 
+	/* Everyone */
 	if (s == "*")
 	{
-		f.type = birth_filter::kind::ANY;
 		return f;
 	}
 
-	auto colon = s.find(':');
-	if (colon == std::string::npos) return boost::none;
-
-	auto kind = s.substr(0, colon);
-	if (kind == "RACE") f.type = birth_filter::kind::RACE;
-	else if (kind == "SUBRACE") f.type = birth_filter::kind::SUBRACE;
-	else if (kind == "CLASS") f.type = birth_filter::kind::CLASS;
-	else if (kind == "SPEC") f.type = birth_filter::kind::SPEC;
-	else if (kind == "TAG") f.type = birth_filter::kind::TAG;
-	else return boost::none;
-
-	f.names = split(s.substr(colon + 1), '|');
-	for (auto const &name : f.names)
+	/* Conditions that must all match */
+	for (auto const &part : split(s, '&'))
 	{
-		if (name.empty()) return boost::none;
+		auto c = parse_birth_condition(part);
+		if (!c) return boost::none;
+		f.conditions.push_back(*c);
 	}
 
 	return f;
@@ -311,25 +329,34 @@ boost::optional<birth_filter> parse_birth_filter(std::string const &text)
 
 bool birth_filter_matches(birth_filter const &filter, birth_character const &who)
 {
-	switch (filter.type)
+	for (auto const &c : filter.conditions)
 	{
-	case birth_filter::kind::ANY:
-		return true;
-	case birth_filter::kind::RACE:
-		return names_contain(filter.names, who.race);
-	case birth_filter::kind::SUBRACE:
-		return names_contain(filter.names, who.subrace);
-	case birth_filter::kind::CLASS:
-		return names_contain(filter.names, who.class_name);
-	case birth_filter::kind::SPEC:
-		return names_contain(filter.names, who.spec);
-	case birth_filter::kind::TAG:
-		return std::any_of(who.tags.begin(), who.tags.end(), [&filter](std::string const &tag) {
-			return names_contain(filter.names, tag);
-		});
+		switch (c.type)
+		{
+		case birth_condition::kind::RACE:
+			if (!names_contain(c.names, who.race)) return false;
+			break;
+		case birth_condition::kind::SUBRACE:
+			if (!names_contain(c.names, who.subrace)) return false;
+			break;
+		case birth_condition::kind::CLASS:
+			if (!names_contain(c.names, who.class_name)) return false;
+			break;
+		case birth_condition::kind::SPEC:
+			if (!names_contain(c.names, who.spec)) return false;
+			break;
+		case birth_condition::kind::TAG:
+			if (!std::any_of(who.tags.begin(), who.tags.end(), [&c](std::string const &tag) {
+				return names_contain(c.names, tag);
+			}))
+			{
+				return false;
+			}
+			break;
+		}
 	}
 
-	return false;
+	return true;
 }
 
 birth_field_result parse_birth_kit_field(char field, std::string const &rest, birth_kit *kit)

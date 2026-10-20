@@ -37,8 +37,10 @@ G:k:+1000:+1000:Magic-Device
 #
 # In this general section, G:W:<filter> limits the G:O lines that
 # follow it to matching characters; <filter> is * (everyone, the
-# default) or RACE:, SUBRACE:, CLASS:, SPEC: or TAG: followed by
-# names separated by '|', e.g. G:W:TAG:spellcaster
+# default) or conditions joined by '&' that must all match, each
+# RACE:, SUBRACE:, CLASS:, SPEC: or TAG: followed by names separated
+# by '|' (any of which matches), e.g. G:W:TAG:spellcaster or
+# G:W:RACE:Maia&SPEC:Mage|Sorceror
 
 # Adventurer's Guide
 G:O:8:20:1
