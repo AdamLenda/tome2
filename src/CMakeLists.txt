@@ -126,6 +126,7 @@ SET(SRCS_TESTS
   # Own code
   ../tests/arbitrary/boost_optional.cc
   ../tests/birth_kit.cc
+  ../tests/birth_kit_data.cc
   ../tests/get_level_device.cc
   ../tests/harness.cc
   ../tests/lua_get_level.cc

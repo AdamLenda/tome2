@@ -1163,22 +1163,6 @@ errr init_player_info_txt(FILE *fp)
 			if (err == 0) continue;
 		}
 
-		/* Process 'A' for "Artifact birth", the same as 'O:A:' */
-		if ((buf[0] == 'R') && (buf[2] == 'A'))
-		{
-			auto o = parse_birth_object(std::string("A:") + (buf + 4));
-
-			if (!o)
-			{
-				return 1;
-			}
-
-			rp_ptr->kit.objects.push_back(*o);
-
-			/* Next... */
-			continue;
-		}
-
 		/* Process 'C' for "Class choice flags" (multiple lines) */
 		if ((buf[0] == 'R') && (buf[2] == 'C'))
 		{

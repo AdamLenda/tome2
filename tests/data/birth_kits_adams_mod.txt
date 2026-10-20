@@ -1,0 +1,97 @@
+C	Rogue	O	23:4 x1d1
+C	Warrior	O	37:4 x1d1
+C	Warrior	O	45:38 x1d1
+G	*	O	39:0 x3-7 fuel=3-7*500
+G	*	O	80:35 x3-7
+G	*	O	8:20 x1
+P	Archer/Archer	O	17:1 x10d3
+P	Archer/Archer	O	17:1 x10d3
+P	Archer/Archer	O	19:12 x1d1
+P	Archer/Archer	O	19:2 x1d1
+P	Archer/Ranger	O	17:1 x10d3
+P	Archer/Ranger	O	19:12 x1d1
+P	Archer/Ranger	O	23:10 x1d1
+P	Archer/Ranger	O	B:Phase Door
+P	Loremaster/Bard	O	14:59 x1d1
+P	Loremaster/Bard	O	23:10 x1d1
+P	Loremaster/Bard	O	36:2 x1d1
+P	Loremaster/Bard	O	71:37 x1d1
+P	Loremaster/Loremaster	O	16:0 x3d10
+P	Loremaster/Loremaster	O	19:2 x1d1
+P	Loremaster/Loremaster	O	21:3 x1d1
+P	Loremaster/Loremaster	O	36:6 x1d1
+P	Loremaster/Mimic	O	23:4 x1d1
+P	Loremaster/Mimic	O	35:100 x1 form=Mouse
+P	Loremaster/Mimic	O	71:37 x1d1
+P	Loremaster/Monk	O	36:4 x1d1
+P	Loremaster/Monk	O	71:37 x1d1
+P	Loremaster/Possessor	O	23:10 x1d1
+P	Loremaster/Possessor	O	36:6 x1d1
+P	Loremaster/Possessor	O	71:37 x1d1
+P	Loremaster/Summoner	O	23:10 x1d1
+P	Loremaster/Summoner	O	36:6 x1d1
+P	Loremaster/Summoner	O	71:37 x1d1
+P	Loremaster/Symbiant	O	23:4 x1d1
+P	Loremaster/Symbiant	O	70:6 x1d1
+P	Mage/Geomancer	O	6:1 x1d1
+P	Mage/Geomancer	O	B:Geyser
+P	Mage/Mage	O	111:50 x1d1
+P	Mage/Mage	O	23:4 x1d1
+P	Mage/Necromancer	O	111:50 x1d1
+P	Mage/Necromancer	O	23:4 x1d1
+P	Mage/Sorceror	O	111:50 x1d1
+P	Mage/Sorceror	O	36:2 x1d1
+P	Mage/Thaumaturgist	O	111:50 x1d1
+P	Mage/Thaumaturgist	O	23:4 x1d1
+P	Mage/Warper	O	111:50 x1d1
+P	Mage/Warper	O	23:4 x1d1
+P	Priest/Dark-Priest	O	21:5 x1d1
+P	Priest/Dark-Priest	O	B:Curse
+P	Priest/Druid	O	21:5 x1d1
+P	Priest/Druid	O	B:Charm Animal
+P	Priest/Mindcrafter	O	21:5 x1d1
+P	Priest/Paladin	O	23:25 x1d1
+P	Priest/Paladin	O	B:Divine Aim
+P	Priest/Priest(Eru)	O	21:5 x1d1
+P	Priest/Priest(Eru)	O	B:See the Music
+P	Priest/Priest(Manwe)	O	21:5 x1d1
+P	Priest/Priest(Manwe)	O	B:Manwe's Blessing
+P	Warrior/Axemaster	O	24:1 x1d1
+P	Warrior/Demonologist	O	115:55 x1d1
+P	Warrior/Haftedmaster	O	21:13 x1d1
+P	Warrior/Polearmmaster	O	22:8 x1d1
+P	Warrior/Swordmaster	O	23:16 x1d1
+P	Warrior/Unbeliever	O	23:33 x1d1
+P	Warrior/Warrior	O	23:16 x1d1
+R	Ent	O	70:32 x2d3
+R	Maia	O	A10
+R	Maia	O	A11
+R	Maia	O	A127
+R	Maia	O	A13
+R	Maia	O	A130
+R	Maia	O	A170
+R	Maia	O	A2
+R	Maia	O	A219
+R	Maia	O	A220
+R	Maia	O	A221
+R	Maia	O	A222
+R	Maia	O	A223
+R	Maia	O	A224
+R	Maia	O	A225
+R	Maia	O	A226
+R	Maia	O	A227
+R	Maia	O	A228
+R	Maia	O	A229
+R	Maia	O	A5
+R	Maia	O	A59
+R	Maia	O	A61
+R	Maia	X	23:4
+R	Maia	X	39:0
+R	Maia	X	8:20
+S	LostSoul	O	70:12 x25d3
+S	LostSoul	O	70:32 x25d2
+S	Skeleton	O	70:32 x2d3
+S	Spectre	O	70:32 x2d3
+S	Vampire	O	70:0 x5d3
+S	Vampire	O	70:32 x2d3
+S	Zombie	O	70:32 x2d3
