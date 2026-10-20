@@ -581,6 +581,17 @@ s16b last_teleportation_x = -1;
  */
 const char *game_module;
 s32b game_module_idx;
+
+/*
+ * Module chosen by the player; game_module_idx holds the module whose
+ * rules apply.
+ */
+s32b game_module_selected_idx;
+
+/*
+ * Module edit overlay directory, or NULL
+ */
+char *ANGBAND_DIR_EDIT_OVERLAY = NULL;
 s32b VERSION_MAJOR;
 s32b VERSION_MINOR;
 s32b VERSION_PATCH;

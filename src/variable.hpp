@@ -176,6 +176,8 @@ extern s16b last_teleportation_y;
 extern s16b last_teleportation_x;
 extern const char *game_module;
 extern s32b game_module_idx;
+extern s32b game_module_selected_idx;
+extern char *ANGBAND_DIR_EDIT_OVERLAY;
 extern s32b VERSION_MAJOR;
 extern s32b VERSION_MINOR;
 extern s32b VERSION_PATCH;

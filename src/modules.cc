@@ -172,7 +172,8 @@ static void activate_module(int module_idx)
 	module_type *module_ptr = &modules[module_idx];
 
 	/* Initialize the module table */
-	game_module_idx = module_idx;
+	game_module_selected_idx = module_idx;
+	game_module_idx = module_ptr->meta.rules_module;
 
 	/* Do misc inits  */
 	RANDART_WEAPON = module_ptr->randarts.weapon_chance;
@@ -205,11 +206,52 @@ static void init_module(module_type *module_ptr)
 		module_reset_dir("user", dir);
 		module_reset_dir("pref", dir);
 	}
+
+	/* Set up an edit overlay? */
+	const char *overlay = module_ptr->meta.edit_overlay_dir;
+	if (overlay) {
+		fs::path path(ANGBAND_DIR_MODULES);
+		path /= overlay;
+		path /= "edit";
+
+		free(ANGBAND_DIR_EDIT_OVERLAY);
+		ANGBAND_DIR_EDIT_OVERLAY = strdup(path.string().c_str());
+
+		/* Keep its saves apart from the base module's */
+		if (!dir)
+		{
+			module_reset_dir("save", overlay);
+		}
+	}
+}
+
+std::string module_edit_file_path(const char *name)
+{
+	if (ANGBAND_DIR_EDIT_OVERLAY)
+	{
+		fs::path path(ANGBAND_DIR_EDIT_OVERLAY);
+		path /= name;
+
+		if (fs::exists(path))
+		{
+			return path.string();
+		}
+	}
+
+	fs::path path(ANGBAND_DIR_EDIT);
+	path /= name;
+	return path.string();
 }
 
 bool module_savefile_loadable(std::string const &tag)
 {
-	return tag == modules[game_module_idx].meta.save_file_tag;
+	/* Accept saves made before the module was renamed */
+	if ((game_module_selected_idx == MODULE_ADAMS_MOD) && (tag == "ToME Plus"))
+	{
+		return true;
+	}
+
+	return tag == modules[game_module_selected_idx].meta.save_file_tag;
 }
 
 /* Find module index by name. Returns -1 if matching module not found */

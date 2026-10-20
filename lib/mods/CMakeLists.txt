@@ -1,1 +1,2 @@
 ADD_SUBDIRECTORY(theme)
+ADD_SUBDIRECTORY(adams_mod)

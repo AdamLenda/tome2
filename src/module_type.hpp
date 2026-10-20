@@ -33,6 +33,14 @@ struct module_type
 
 		/* Module directory */
 		const char *module_dir;
+
+		/* Module whose game rules apply (MODULE_*) */
+		s32b rules_module;
+
+		/* Directory under mods/ whose edit/ files override the
+		   base ones; files not present there are read from the
+		   base edit directory. NULL for none. */
+		const char *edit_overlay_dir;
 	} meta;
 
 	/* Random artifact generation chances */

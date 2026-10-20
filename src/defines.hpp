@@ -2162,7 +2162,8 @@
  */
 #define MODULE_TOME             0
 #define MODULE_THEME            1
-#define MAX_MODULES             2
+#define MODULE_ADAMS_MOD        2
+#define MAX_MODULES             3
 
 /*
  * Races

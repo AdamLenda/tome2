@@ -3624,6 +3624,8 @@ module_type modules[MAX_MODULES] =
 		  "But who knows what will happen...",
 		  "ToME",
 		  NULL /* default dir */,
+		  MODULE_TOME,
+		  NULL /* no edit overlay */,
 		},
 		/* Randarts: */
 		{ 30, 20, 20 },
@@ -3644,6 +3646,8 @@ module_type modules[MAX_MODULES] =
 		  "terrain features, gods, races, subraces, and classes. Have fun. :-)",
 		  "Theme",
 		  "theme",
+		  MODULE_THEME,
+		  NULL /* no edit overlay */,
 		},
 		/* Randarts: */
 		{ 30, 30, 30 },
@@ -3653,6 +3657,28 @@ module_type modules[MAX_MODULES] =
 		theme_intro,
 		/* Race status function */
 		theme_race_status
+	},
+
+	{
+		{ "Adam's Mod",
+		  { 2, 4, 1 },
+		  { "DarkGod", "darkgod@t-o-m-e.net" },
+		  "The standard ToME game with local data changes.\n"
+		  "Uses the ToME rules and data, except for the edit files\n"
+		  "found in lib/mods/adams_mod/edit. Saves are kept separately.",
+		  "Adam's Mod",
+		  NULL /* default dir */,
+		  MODULE_TOME,
+		  "adams_mod",
+		},
+		/* Randarts: */
+		{ 30, 20, 20 },
+		/* Skills: */
+		{ 6, 4, },
+		/* Intro function */
+		tome_intro,
+		/* Race status function: ToME requires no special handling */
+		NULL
 	}
 
 };

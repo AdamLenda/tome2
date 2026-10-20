@@ -40,6 +40,7 @@
 #include "tables.hpp"
 #include "town_type.hpp"
 #include "util.hpp"
+#include "modules.hpp"
 #include "variable.hpp"
 #include "wilderness_type_info.hpp"
 #include "z-form.hpp"
@@ -6902,7 +6903,7 @@ errr process_dungeon_file(const char *name, int *yval, int *xval, int ymax, int 
 	}
 
 	/* Build the filename */
-	path_build(buf, 1024, ANGBAND_DIR_EDIT, name);
+	strnfmt(buf, 1024, "%s", module_edit_file_path(name).c_str());
 
 	/* Open the file */
 	fp = my_fopen(buf, "r");

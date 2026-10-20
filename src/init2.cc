@@ -457,8 +457,7 @@ namespace {
 template<typename T> static errr init_x_info() {
 
 	/* Build the filename */
-	boost::filesystem::path path(ANGBAND_DIR_EDIT);
-	path /= T::name;
+	boost::filesystem::path path(module_edit_file_path(T::name));
 
 	/* Open the file */
 	FILE *fp = my_fopen(path.c_str(), "r");
