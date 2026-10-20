@@ -845,6 +845,12 @@ static object_type make_birth_object(birth_object const &o)
 			quit_fmt("Couldn't find mimic form '%s'\n", o.form.c_str());
 		}
 
+		/* Forms without a cloak name would crash when the cloak is shown */
+		if (!get_mimic_object_name(form))
+		{
+			quit_fmt("Mimic form '%s' cannot be given as a cloak\n", o.form.c_str());
+		}
+
 		q_ptr->pval2 = form;
 	}
 
