@@ -24,6 +24,8 @@
  *                         CLASS:, SPEC: or TAG: followed by
  *                         '|'-separated names (any of which matches),
  *                         e.g. RACE:Maia&SPEC:Mage|Sorceror
+ *   E:wear                put on the starting objects that can be worn
+ *   E:carry               carry all starting objects (the default)
  *
  * Numbers are "N", "A-B" (uniform) or "XdY" (dice), optionally
  * followed by "*M" to multiply the result.  Object keys are
@@ -146,6 +148,9 @@ struct general_birth_kit
 
 	/* Filter set by the last G:W line; used while parsing */
 	birth_filter current_filter;
+
+	/* Put on the starting objects that can be worn (G:E:wear)? */
+	bool wear = false;
 };
 
 enum class birth_field_result { NOT_HANDLED, OK, INVALID };

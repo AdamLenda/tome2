@@ -9,6 +9,7 @@
 
 #include "ability_type.hpp"
 #include "artifact_type.hpp"
+#include "birth_equip.hpp"
 #include "birth_kit.hpp"
 #include "corrupt.hpp"
 #include "cmd4.hpp"
@@ -30,6 +31,7 @@
 #include "notes.hpp"
 #include "object1.hpp"
 #include "object2.hpp"
+#include "object_flag.hpp"
 #include "object_kind.hpp"
 #include "options.hpp"
 #include "player_class.hpp"
@@ -857,6 +859,110 @@ static object_type make_birth_object(birth_object const &o)
 
 
 /*
+ * The kind of ammunition a launcher fires or an object is (non-zero),
+ * as wield_slot_ideal() pairs them: slings fire shots, bows arrows and
+ * crossbows bolts.
+ */
+static int birth_launcher_ammo(object_type const *o_ptr)
+{
+	if (o_ptr->tval != TV_BOW) return 0;
+	if (o_ptr->sval < 10) return TV_SHOT;
+	if (o_ptr->sval < 20) return TV_ARROW;
+	return TV_BOLT;
+}
+
+static int birth_ammo(object_type const *o_ptr)
+{
+	switch (o_ptr->tval)
+	{
+	case TV_SHOT:
+	case TV_ARROW:
+	case TV_BOLT:
+		return o_ptr->tval;
+	}
+
+	return 0;
+}
+
+
+/*
+ * Put on the starting objects that fit (see birth_equip.hpp), taking
+ * them out of 'objects'; what remains is to be carried.
+ */
+static void player_wear_outfit(std::vector<object_type> *objects)
+{
+	auto const &a_info = game->edit_data.a_info;
+
+	/* The body's equipment slots */
+	calc_body();
+
+	std::map<int, int> slot_counts;
+	for (int i = 0; i < INVEN_EQ; i++)
+	{
+		if (p_ptr->body_parts[i])
+		{
+			slot_counts[p_ptr->body_parts[i]]++;
+		}
+	}
+
+	/* Weapons are only wielded by those fighting with weapons (as in
+	   item_tester_hook_wear()); martial artists keep theirs in the pack */
+	if (p_ptr->melee_style != SKILL_MASTERY)
+	{
+		slot_counts.erase(INVEN_WIELD);
+	}
+
+	/* What could be put on */
+	std::vector<equip_candidate> candidates;
+	for (std::size_t i = 0; i < objects->size(); i++)
+	{
+		auto o_ptr = &(*objects)[i];
+		auto const flags = object_flags(o_ptr);
+
+		equip_candidate c;
+		c.id = static_cast<int>(i);
+		c.slot = wield_slot_ideal(o_ptr, true);
+		c.number = o_ptr->number;
+		c.artifact = artifact_p(o_ptr);
+		c.cursed = cursed_p(o_ptr);
+		c.ultimate = bool(flags & TR_ULTIMATE);
+		c.value = object_value(o_ptr);
+		c.must_two_hand = bool(flags & TR_MUST2H);
+		c.could_two_hand = bool(flags & TR_COULD2H);
+		c.launches = birth_launcher_ammo(o_ptr);
+		c.ammo = birth_ammo(o_ptr);
+		candidates.push_back(c);
+	}
+
+	/* Put them on */
+	for (auto const &choice : plan_birth_equipment(candidates, slot_counts))
+	{
+		auto &source = (*objects)[choice.id];
+
+		auto worn = &p_ptr->inventory[choice.slot];
+		object_copy(worn, &source);
+		worn->number = choice.number;
+		source.number -= choice.number;
+
+		/* Start with it identified, as inven_carry() would */
+		object_aware(worn);
+		object_known(worn);
+
+		equip_cnt++;
+
+		/* Take care of item sets */
+		if (worn->name1)
+		{
+			wield_set(worn->name1, a_info[worn->name1].set, true);
+		}
+	}
+
+	p_ptr->update |= (PU_BONUS | PU_TORCH | PU_HP | PU_MANA | PU_SPELLS);
+	p_ptr->window |= (PW_INVEN | PW_EQUIP | PW_PLAYER);
+}
+
+
+/*
  * Init players with some belongings
  *
  * Having an item makes the player "aware" of its purpose.
@@ -880,10 +986,25 @@ static void player_outfit()
 	who.class_name = cp_ptr->title;
 	who.spec = spp_ptr->title;
 
+	std::vector<object_type> objects;
 	for (auto const &o : assemble_birth_kit(game->edit_data.gen_kit, player_birth_kits(), who))
 	{
-		auto forge = make_birth_object(o);
-		inven_carry(&forge, false);
+		objects.push_back(make_birth_object(o));
+	}
+
+	/* Put on what can be worn (if p_info.txt asks for it), then carry
+	   the rest */
+	if (game->edit_data.gen_kit.wear)
+	{
+		player_wear_outfit(&objects);
+	}
+
+	for (auto &o : objects)
+	{
+		if (o.number > 0)
+		{
+			inven_carry(&o, false);
+		}
 	}
 }
 

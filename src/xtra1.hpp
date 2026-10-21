@@ -13,6 +13,7 @@ int weight_limit();
 extern bool calc_powers_silent;
 void cnv_stat(int i, char *out_val);
 s16b modify_stat_value(int value, int amount);
+void calc_body();
 void calc_hitpoints();
 void notice_stuff();
 void update_stuff();
