@@ -42,6 +42,9 @@ G:k:+1000:+1000:Magic-Device
 # RACE:, SUBRACE:, CLASS:, SPEC: or TAG: followed by names separated
 # by '|' (any of which matches), e.g. G:W:TAG:spellcaster or
 # G:W:RACE:Maia&SPEC:Mage|Sorceror
+#
+# G:E:wear puts on the starting objects that can be worn, following the
+# usual wearing rules; G:E:carry (the default) carries them all.
 
 # Adventurer's Guide
 G:O:8:20:1

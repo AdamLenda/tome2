@@ -417,6 +417,15 @@ birth_field_result parse_general_birth_field(char field, std::string const &rest
 			kit->current_filter = *f;
 			return birth_field_result::OK;
 		}
+
+	case 'E':
+		{
+			auto how = trim_right(rest);
+			if (how == "wear") kit->wear = true;
+			else if (how == "carry") kit->wear = false;
+			else return birth_field_result::INVALID;
+			return birth_field_result::OK;
+		}
 	}
 
 	return birth_field_result::NOT_HANDLED;

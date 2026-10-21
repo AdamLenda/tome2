@@ -430,6 +430,10 @@ go_bandit([]() {
 					AssertThat(show(kits), Equals(expected_kits(m.name)));
 				});
 
+				it("carries the starting objects, as before", [&]() {
+					AssertThat(kits.general.wear, Is().False());
+				});
+
 				it("only names object kinds that exist, apart from known data bugs", [&]() {
 					auto kinds = object_kinds(m);
 					std::set<std::string> unknown;

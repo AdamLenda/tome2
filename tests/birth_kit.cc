@@ -525,6 +525,35 @@ go_bandit([]() {
 			AssertThat(kit.current_filter.conditions.size(), Equals(0u));
 		});
 
+		it("carries the starting objects unless told otherwise", [&]() {
+			general_birth_kit kit;
+			AssertThat(kit.wear, Is().False());
+		});
+
+		it("puts the starting objects on with 'E:wear' and carries them with 'E:carry'", [&]() {
+			general_birth_kit kit;
+			must_parse_general(&kit, 'E', "wear");
+			AssertThat(kit.wear, Is().True());
+			must_parse_general(&kit, 'E', "carry");
+			AssertThat(kit.wear, Is().False());
+		});
+
+		it("ignores trailing whitespace after 'E'", [&]() {
+			general_birth_kit kit;
+			must_parse_general(&kit, 'E', "wear \r");
+			AssertThat(kit.wear, Is().True());
+		});
+
+		it("reports unknown 'E' values and keeps the setting", [&]() {
+			for (auto s : { "", "Wear", "WEAR", "wield", "wear:now", " wear", "carry wear" })
+			{
+				general_birth_kit kit;
+				kit.wear = true;
+				AssertThat(parse_general_birth_field('E', s, &kit) == birth_field_result::INVALID, Is().True());
+				AssertThat(kit.wear, Is().True());
+			}
+		});
+
 		it("leaves other fields alone, including race-level ones", [&]() {
 			general_birth_kit kit;
 			for (auto f : { 'k', 'X', 'T', 'N' })
