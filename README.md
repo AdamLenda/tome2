@@ -98,3 +98,35 @@ To configure and compile on Windows using MinGW, use the commands
 
     $ cmake -G "MinGW Makefiles"
     $ mingw32-make
+
+
+## Mods
+
+A mod changes the data of one of the built-in modules (ToME or Theme)
+without touching the game's own files. Mods live in the `mods` folder
+of your ToME user directory (`~/.tome/2.4/mods`, created on start-up),
+one folder per mod, and appear in the module menu after the built-in
+modules. A mod that can't be loaded is listed there with the reason.
+
+Each mod folder holds:
+
+- `module.txt`, describing the mod:
+
+      N:My Mod
+      B:ToME
+      V:1:0:0
+      A:Your Name:you@example.com
+      D:Up to four lines describing the mod,
+      D:shown in the module menu.
+
+  `N` (the name, at most 16 characters) and `B` (the built-in module
+  it builds on) are required. `S:<tag>` lines let the mod load
+  savefiles made under another name, such as an earlier name of the
+  mod.
+
+- `edit/`, holding the edit files the mod changes. Any edit file not
+  there is read from the base module (`lib/edit`, or
+  `lib/mods/theme/edit` for Theme).
+
+A mod plays by its base module's rules, and its savefiles are kept
+apart, in `save/<mod folder>`.

@@ -33,6 +33,7 @@
 #include "spells2.hpp"
 #include "stats.hpp"
 #include "tables.hpp"
+#include "user_mods.hpp"
 #include "util.hpp"
 #include "variable.hpp"
 #include "z-form.hpp"
@@ -42,6 +43,7 @@
 #include <boost/filesystem.hpp>
 #include <cassert>
 #include <chrono>
+#include <deque>
 #include <thread>
 
 using boost::algorithm::equals;
@@ -172,7 +174,8 @@ static void activate_module(int module_idx)
 	module_type *module_ptr = &modules[module_idx];
 
 	/* Initialize the module table */
-	game_module_idx = module_idx;
+	game_module_selected_idx = module_idx;
+	game_module_idx = module_ptr->meta.rules_module;
 
 	/* Do misc inits  */
 	RANDART_WEAPON = module_ptr->randarts.weapon_chance;
@@ -201,15 +204,37 @@ static void init_module(module_type *module_ptr)
 		module_reset_dir("file", dir);
 		module_reset_dir("help", dir);
 		module_reset_dir("note", dir);
-		module_reset_dir("save", dir);
 		module_reset_dir("user", dir);
 		module_reset_dir("pref", dir);
 	}
+
+	/* Keep its savefiles apart? */
+	if (module_ptr->meta.save_dir)
+	{
+		module_reset_dir("save", module_ptr->meta.save_dir);
+	}
+
+	/* A mod's edit files take the place of the module's own */
+	free(ANGBAND_DIR_EDIT_OVERLAY);
+	ANGBAND_DIR_EDIT_OVERLAY = nullptr;
+
+	if (module_ptr->meta.edit_overlay_dir)
+	{
+		ANGBAND_DIR_EDIT_OVERLAY = strdup(module_ptr->meta.edit_overlay_dir);
+	}
+}
+
+std::string module_edit_file_path(const char *name)
+{
+	return choose_edit_file(ANGBAND_DIR_EDIT_OVERLAY, ANGBAND_DIR_EDIT, name);
 }
 
 bool module_savefile_loadable(std::string const &tag)
 {
-	return tag == modules[game_module_idx].meta.save_file_tag;
+	auto const &meta = modules[game_module_selected_idx].meta;
+
+	return (tag == meta.save_file_tag) ||
+		(std::find(meta.other_save_tags.begin(), meta.other_save_tags.end(), tag) != meta.other_save_tags.end());
 }
 
 /* Find module index by name. Returns -1 if matching module not found */
@@ -217,7 +242,7 @@ int find_module(const char *name)
 {
 	int i = 0;
 
-	for (i=0; i<MAX_MODULES; i++)
+	for (i = 0; i < static_cast<int>(modules.size()); i++)
 	{
 		if (equals(name, modules[i].meta.name))
 		{
@@ -228,10 +253,106 @@ int find_module(const char *name)
 	return -1;
 }
 
+/*
+ * Mods installed by the player (kept here, as the module table points
+ * into them), and why others could not be loaded.
+ */
+static std::deque<user_mod> user_mods;
+static std::deque<std::string> user_mod_edit_dirs;
+static std::vector<std::string> user_mod_errors;
+
+/*
+ * Add the mods in the user's mods directory to the module table.
+ */
+static void load_user_mods()
+{
+	static bool loaded = false;
+
+	if (loaded)
+	{
+		return;
+	}
+	loaded = true;
+
+	char user_path[1024];
+	path_parse(user_path, sizeof(user_path), PRIVATE_USER_PATH);
+	std::string mods_dir = std::string(user_path) + USER_PATH_VERSION + PATH_SEP + "mods";
+
+	/* Show players where mods go */
+	private_check_user_directory(mods_dir.c_str());
+
+	/* Mods build on the built-in modules */
+	std::vector<std::string> built_in;
+	for (auto const &module : modules)
+	{
+		built_in.push_back(module.meta.name);
+	}
+
+	auto found = find_user_mods(mods_dir, built_in, built_in);
+	user_mod_errors = found.errors;
+
+	for (auto const &found_mod : found.mods)
+	{
+		user_mods.push_back(found_mod);
+		auto const &mod = user_mods.back();
+		auto const &manifest = mod.manifest;
+
+		int base = find_module(manifest.base.c_str());
+		assert(base >= 0);
+
+		/* Everything but the description comes from the base module */
+		module_type module = modules[base];
+
+		module.meta.name = manifest.name.c_str();
+		module.meta.version.major = manifest.version_major;
+		module.meta.version.minor = manifest.version_minor;
+		module.meta.version.patch = manifest.version_patch;
+		module.meta.author.name = manifest.author_name.empty() ? "an unknown author" : manifest.author_name.c_str();
+		module.meta.author.email = manifest.author_email.c_str();
+		module.meta.desc = manifest.desc.c_str();
+		module.meta.save_file_tag = manifest.name.c_str();
+		module.meta.other_save_tags = manifest.save_tags;
+		module.meta.save_dir = mod.dir_name.c_str();
+
+		user_mod_edit_dirs.push_back((fs::path(mod.path) / "edit").string());
+		module.meta.edit_overlay_dir = user_mod_edit_dirs.back().c_str();
+
+		modules.push_back(module);
+	}
+}
+
+/*
+ * List the mods that could not be loaded, under the module menu.
+ */
+static void show_user_mod_errors()
+{
+	if (user_mod_errors.empty())
+	{
+		return;
+	}
+
+	int y = 18;
+	c_put_str(TERM_ORANGE, "Some mods could not be loaded:", y++, 3);
+
+	for (std::size_t i = 0; i < user_mod_errors.size(); i++)
+	{
+		if ((i == 3) && (user_mod_errors.size() > 4))
+		{
+			put_str(format("...and %d more", static_cast<int>(user_mod_errors.size() - i)), y, 5);
+			break;
+		}
+
+		put_str(user_mod_errors[i].substr(0, 74).c_str(), y++, 5);
+	}
+}
+
 bool select_module(program_args const &args)
 {
+	/* Add the player's mods */
+	load_user_mods();
+
 	/* How many modules? */
-	s32b max = MAX_MODULES;
+	s32b max = modules.size();
 
 	/* No need to bother the player if there is only one module */
 	s32b sel = -1;
@@ -268,6 +389,7 @@ bool select_module(program_args const &args)
 		put_str("Press 8/2/4/6 to move, Return to select and Esc to quit.", 4, 3);
 
 		dump_modules(sel, max);
+		show_user_mod_errors();
 
 		s32b k = inkey();
 

@@ -2622,11 +2622,19 @@ void do_cmd_note()
  */
 void do_cmd_version()
 {
+	auto const &author = modules[game_module_selected_idx].meta.author;
+
 	/* Silly message */
-	msg_format("You are playing %s made by %s (%s).",
-	           get_version_string(),
-	           modules[game_module_idx].meta.author.name,
-		   modules[game_module_idx].meta.author.email);
+	if (author.email && *author.email)
+	{
+		msg_format("You are playing %s made by %s (%s).",
+		           get_version_string(), author.name, author.email);
+	}
+	else
+	{
+		msg_format("You are playing %s made by %s.",
+		           get_version_string(), author.name);
+	}
 }
 
 

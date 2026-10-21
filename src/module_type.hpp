@@ -2,6 +2,9 @@
 
 #include "h-basic.hpp"
 
+#include <string>
+#include <vector>
+
 /**
  * Module descriptor.
  */
@@ -33,6 +36,21 @@ struct module_type
 
 		/* Module directory */
 		const char *module_dir;
+
+		/* Module whose game rules apply (MODULE_*): the module
+		   itself for the built-in ones, the base module for mods */
+		s32b rules_module;
+
+		/* Directory under the save directory that holds its
+		   savefiles, or NULL for the save directory itself */
+		const char *save_dir;
+
+		/* Directory whose edit files take the place of the
+		   module's own (a mod's edit/ directory), or NULL */
+		const char *edit_overlay_dir;
+
+		/* Savefile tags accepted besides save_file_tag */
+		std::vector<std::string> other_save_tags;
 	} meta;
 
 	/* Random artifact generation chances */

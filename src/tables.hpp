@@ -75,5 +75,6 @@ extern int cli_total;
 extern quest_type quest[MAX_Q_IDX];
 extern int max_body_part[BODY_MAX];
 extern gf_name_type gf_names[];
-extern module_type modules[MAX_MODULES];
+/* The built-in modules, then the mods the player installed */
+extern std::vector<module_type> modules;
 extern char hexsym[16];
