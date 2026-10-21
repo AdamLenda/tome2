@@ -1,0 +1,74 @@
+# Fork-only cross-platform check: never part of a pull request.
+# Push any commit to a branch named platform-check/<name> to build it
+# with every front end the platform supports and run the test harness.
+name: Platform check
+
+on:
+  push:
+    branches:
+      - 'platform-check/**'
+
+jobs:
+  linux:
+    name: ${{ matrix.os }} ${{ matrix.cxx }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-22.04, cc: gcc, cxx: g++ }
+          - { os: ubuntu-24.04, cc: gcc, cxx: g++ }
+          - { os: ubuntu-24.04, cc: clang, cxx: clang++ }
+          - { os: ubuntu-24.04-arm, cc: gcc, cxx: g++ }
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y libboost-all-dev libncurses-dev libx11-dev libgtk2.0-dev
+      - run: cmake -S . -B build -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
+      - run: cmake --build build --parallel 4
+      - name: front ends built
+        run: ls build/src | grep -E '^(tome-|harness)'
+      - run: ./build/src/harness
+
+  macos:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ macos-14, macos-15 ]
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install boost
+      - run: cmake -S . -B build
+      - run: cmake --build build --parallel 4
+      - name: front ends built
+        run: ls build/src | grep -E '^(tome-|harness)'
+      - run: ./build/src/harness
+
+  windows:
+    name: windows (MSYS2 UCRT64)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          install: >-
+            git
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-boost
+      - uses: actions/checkout@v4
+      - run: cmake -S . -B build -G Ninja
+      # Keep going past failures, so every error shows (and can be compared between branches)
+      - name: build
+        run: cmake --build build -- -k 0 2>&1 | tee build.log; exit ${PIPESTATUS[0]}
+      - name: error summary
+        if: failure()
+        run: grep -E 'error:|FAILED:' build.log | sed -E 's#^.*/tome2/##' | sort -u
+      - name: front ends built
+        run: ls build/src | grep -E '^(tome-|harness)'
+      - run: ./build/src/harness.exe
