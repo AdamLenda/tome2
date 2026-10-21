@@ -126,6 +126,7 @@ SET(SRCS_TESTS
   # Own code
   ../tests/arbitrary/boost_optional.cc
   ../tests/birth_kit.cc
+  ../tests/birth_kit_data.cc
   ../tests/get_level_device.cc
   ../tests/harness.cc
   ../tests/lua_get_level.cc
@@ -187,3 +188,4 @@ ENDIF()
 # test harness executable
 ADD_EXECUTABLE(harness ${SRCS_TESTS})
 TARGET_LINK_LIBRARIES(harness game squelch ${LIBS})
+TARGET_COMPILE_DEFINITIONS(harness PRIVATE TOME_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
