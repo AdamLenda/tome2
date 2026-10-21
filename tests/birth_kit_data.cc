@@ -6,21 +6,48 @@
  * data-driven (generated from the old data files and the rules then
  * hard-coded in player_outfit()).  Reading p_info.txt through the
  * birth-kit parser must give exactly the same objects.
+ *
+ * Installed mods can be checked too: set TOME_TEST_MODS to a mods
+ * directory, e.g. TOME_TEST_MODS=~/.tome/2.4/mods ./src/harness.  Each
+ * mod gets the same data checks, plus those its tests/expectations.txt
+ * lists (one per line, fields separated by tabs; '#' starts a comment):
+ *
+ *   KIT <race> <subrace> <class> <specialty> <object>...
+ *       the character starts with exactly these objects
+ *   HAS <race> <subrace> <class> <specialty> <object>...
+ *       the character starts with at least these objects
+ *   WEARS
+ *       characters put on their starting objects (G:E:wear)
+ *   WORSHIP <race>
+ *       the race may follow a god
+ *   CLASS <race> <class>
+ *       the class is recommended for the race
+ *
+ * An empty <subrace> means none. Objects are written as these tests show
+ * them, e.g. "A82" (artifact 82), "18:1 x40" or "B:Phase Door".
  */
 
 #include "birth_kit.hpp"
 #include "defines.hpp"
 #include "mimic.hpp"
+#include "object_flag_meta.hpp"
+#include "user_mods.hpp"
 #include "variable.hpp"
 
 #include <bandit/bandit.h>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/filesystem.hpp>
 #include <algorithm>
+#include <cstdlib>
 #include <fstream>
 #include <map>
 #include <set>
 #include <sstream>
 
 using namespace bandit;
+
+namespace fs = boost::filesystem;
 
 namespace {
 
@@ -32,7 +59,11 @@ std::string source_path(std::string const &relative)
 struct module_files
 {
 	std::string name;
+
+	// Edit directory, and where files missing from it are read (both
+	// the same for the built-in modules)
 	std::string edit_dir;
+	std::string base_edit_dir;
 
 	// Object kinds the data already referred to without k_info.txt
 	// defining them (the game gives the placeholder "something").
@@ -41,16 +72,53 @@ struct module_files
 	// Module whose game rules apply (MODULE_*)
 	int rules;
 
+	// A built-in module (with a golden file), or a mod with an
+	// optional expectations file
+	bool built_in;
+	std::string expectations;
+
 	std::string edit_file(std::string const &file) const
 	{
-		return source_path(edit_dir + "/" + file);
+		return choose_edit_file(edit_dir.c_str(), base_edit_dir.c_str(), file);
 	}
 };
 
+module_files built_in_module(std::string const &name, std::string const &edit_dir, std::set<std::string> const &known_missing_kinds, int rules)
+{
+	return { name, source_path(edit_dir), source_path(edit_dir), known_missing_kinds, rules, true, "" };
+}
+
 std::vector<module_files> const modules {
-	{ "tome", "lib/edit", { "70:12" }, MODULE_TOME },
-	{ "theme", "lib/mods/theme/edit", { "70:12", "46:1" }, MODULE_THEME },
+	built_in_module("tome", "lib/edit", { "70:12" }, MODULE_TOME),
+	built_in_module("theme", "lib/mods/theme/edit", { "70:12", "46:1" }, MODULE_THEME),
 };
+
+/* The mods in the directory TOME_TEST_MODS names, if any */
+user_mods_found const &test_mods()
+{
+	static user_mods_found const found = [] {
+		const char *dir = std::getenv("TOME_TEST_MODS");
+		std::vector<std::string> const names { "ToME", "Theme" };
+		return (dir && *dir) ? find_user_mods(dir, names, names) : user_mods_found();
+	}();
+	return found;
+}
+
+/* The built-in modules, then the mods to check */
+std::vector<module_files> modules_to_check()
+{
+	auto out = modules;
+	for (auto const &mod : test_mods().mods)
+	{
+		module_files m = (mod.manifest.base == "Theme") ? modules[1] : modules[0];
+		m.name = "mod " + mod.dir_name;
+		m.edit_dir = (fs::path(mod.path) / "edit").string();
+		m.built_in = false;
+		m.expectations = (fs::path(mod.path) / "tests" / "expectations.txt").string();
+		out.push_back(m);
+	}
+	return out;
+}
 
 std::vector<std::string> read_lines(std::string const &path)
 {
@@ -349,6 +417,32 @@ std::set<int> artifacts(module_files const &m)
 	return idxs;
 }
 
+/* Flags (F: and f: lines) of every artifact in a_info.txt */
+std::map<int, std::set<std::string>> artifact_flags(module_files const &m)
+{
+	std::map<int, std::set<std::string>> flags;
+	int idx = -1;
+	for (auto const &line : read_lines(m.edit_file("a_info.txt")))
+	{
+		if (1 == sscanf(line.c_str(), "N:%d:", &idx))
+		{
+			flags[idx];
+		}
+		else if ((idx >= 0) && (boost::algorithm::starts_with(line, "F:") || boost::algorithm::starts_with(line, "f:")))
+		{
+			flags[idx].insert(line.substr(2));
+		}
+	}
+	return flags;
+}
+
+/* Flags that make an artifact cursed (AGGRAVATE is allowed) */
+std::set<std::string> const curse_flags {
+	"CURSED", "HEAVY_CURSE", "PERMA_CURSE", "AUTO_CURSE", "TY_CURSE", "DG_CURSE",
+	"DRAIN_EXP", "DRAIN_HP", "DRAIN_MANA", "BLACK_BREATH", "NO_MAGIC", "NO_TELE",
+	"TELEPORT", "CLONE",
+};
+
 /* Every starting object of a module, whatever the level or filter */
 std::vector<birth_object> all_objects(module_kits const &kits)
 {
@@ -406,13 +500,117 @@ bool contains(std::vector<std::string> const &v, std::string const &s)
 	return std::find(v.begin(), v.end(), s) != v.end();
 }
 
+/* The lines of a race's entry in p_info.txt */
+std::vector<std::string> race_lines(module_files const &m, std::string const &race)
+{
+	std::vector<std::string> out;
+	bool in_race = false;
+	for (auto const &line : read_lines(m.edit_file("p_info.txt")))
+	{
+		if (boost::algorithm::starts_with(line, "R:N:"))
+		{
+			in_race = boost::algorithm::ends_with(line, ":" + race);
+		}
+		else if (in_race && boost::algorithm::starts_with(line, "R:"))
+		{
+			out.push_back(line);
+		}
+	}
+	return out;
+}
+
+/* A mod's expectations, as tab-separated fields per line */
+std::vector<std::vector<std::string>> expectations(module_files const &m)
+{
+	std::vector<std::vector<std::string>> out;
+	if (m.expectations.empty() || !fs::exists(m.expectations))
+	{
+		return out;
+	}
+	for (auto const &line : read_lines(m.expectations))
+	{
+		if (line.empty() || (line[0] == '#'))
+		{
+			continue;
+		}
+		std::vector<std::string> fields;
+		boost::algorithm::split(fields, line, [](char c) { return c == '\t'; });
+		out.push_back(fields);
+	}
+	return out;
+}
+
+std::string describe_expectation(std::vector<std::string> const &e)
+{
+	std::string s;
+	for (std::size_t i = 0; (i < e.size()) && (i < 5); i++)
+	{
+		s += (i ? " " : "") + (e[i].empty() ? std::string("-") : e[i]);
+	}
+	return s;
+}
+
+void check_expectation(module_files const &m, std::vector<std::string> const &e)
+{
+	auto const &kind = e[0];
+
+	if ((kind == "KIT") || (kind == "HAS"))
+	{
+		AssertThat(e.size(), IsGreaterThan(5u));
+		auto subrace = e[2].empty() ? std::string(" ") : e[2];
+		auto kit = show(kit_for(read_module_kits(m), e[1], subrace, e[3], e[4]));
+		std::vector<std::string> objects(e.begin() + 5, e.end());
+		std::sort(objects.begin(), objects.end());
+		if (kind == "KIT")
+		{
+			AssertThat(kit, Equals(objects));
+		}
+		else
+		{
+			std::vector<std::string> missing;
+			std::set_difference(objects.begin(), objects.end(), kit.begin(), kit.end(), std::back_inserter(missing));
+			AssertThat(missing, Equals(std::vector<std::string> {}));
+		}
+	}
+	else if (kind == "WEARS")
+	{
+		AssertThat(read_module_kits(m).general.wear, Is().True());
+	}
+	else if (kind == "WORSHIP")
+	{
+		AssertThat(e.size(), Equals(2u));
+		std::vector<std::string> blocking;
+		for (auto const &line : race_lines(m, e[1]))
+		{
+			if ((line == "R:G:NO_GOD") || boost::algorithm::ends_with(line, ":Prayer"))
+			{
+				blocking.push_back(line);
+			}
+		}
+		AssertThat(blocking, Equals(std::vector<std::string> {}));
+	}
+	else if (kind == "CLASS")
+	{
+		AssertThat(e.size(), Equals(3u));
+		AssertThat(race_lines(m, e[1]), Contains("R:C:" + e[2]));
+	}
+	else
+	{
+		AssertThat("unknown expectation " + kind, Equals(std::string("KIT, HAS, WEARS, WORSHIP or CLASS")));
+	}
+}
+
 }
 
 go_bandit([]() {
 
 	describe("birth kits in p_info.txt", []() {
 
-		for (auto const &m : modules)
+		it("loads every mod in TOME_TEST_MODS", [&]() {
+			AssertThat(test_mods().errors, Equals(std::vector<std::string> {}));
+		});
+
+		for (auto const &m : modules_to_check())
 		{
 			describe(m.name.c_str(), [m]() {
 
@@ -426,13 +624,16 @@ go_bandit([]() {
 					AssertThat(kits.errors, Equals(std::vector<std::string> {}));
 				});
 
-				it("gives the same starting objects as before", [&]() {
-					AssertThat(show(kits), Equals(expected_kits(m.name)));
-				});
+				if (m.built_in)
+				{
+					it("gives the same starting objects as before", [&]() {
+						AssertThat(show(kits), Equals(expected_kits(m.name)));
+					});
 
-				it("carries the starting objects, as before", [&]() {
-					AssertThat(kits.general.wear, Is().False());
-				});
+					it("carries the starting objects, as before", [&]() {
+						AssertThat(kits.general.wear, Is().False());
+					});
+				}
 
 				it("only names object kinds that exist, apart from known data bugs", [&]() {
 					auto kinds = object_kinds(m);
@@ -481,6 +682,43 @@ go_bandit([]() {
 					AssertThat(unknown, Equals(std::vector<int> {}));
 				});
 
+				it("only gives uncursed artifacts", [&]() {
+					auto flags = artifact_flags(m);
+					std::vector<std::string> cursed;
+					for (auto const &o : all_objects(kits))
+					{
+						if (o.type != birth_object::kind::ARTIFACT) continue;
+						for (auto const &f : flags[o.artifact_idx])
+						{
+							if (curse_flags.count(f))
+							{
+								cursed.push_back("#" + std::to_string(o.artifact_idx) + " " + f);
+							}
+						}
+					}
+					AssertThat(cursed, Equals(std::vector<std::string> {}));
+				});
+
+				it("defines artifacts with known flags only", [&]() {
+					std::set<std::string> known;
+					for (auto const meta : object_flags_meta())
+					{
+						known.insert(meta->e_name);
+					}
+					std::set<std::string> unknown;
+					for (auto const &p : artifact_flags(m))
+					{
+						for (auto const &f : p.second)
+						{
+							if (!known.count(f))
+							{
+								unknown.insert("#" + std::to_string(p.first) + " " + f);
+							}
+						}
+					}
+					AssertThat(unknown, Equals(std::set<std::string> {}));
+				});
+
 				it("only gives mimic cloaks in forms that have a cloak name", [&]() {
 					game_module_idx = m.rules;
 					std::vector<std::string> bad;
@@ -496,6 +734,13 @@ go_bandit([]() {
 					game_module_idx = MODULE_TOME;
 					AssertThat(bad, Equals(std::vector<std::string> {}));
 				});
+
+				for (auto const &e : expectations(m))
+				{
+					it(("expects " + describe_expectation(e)).c_str(), [m, e]() {
+						check_expectation(m, e);
+					});
+				}
 
 			});
 		}
