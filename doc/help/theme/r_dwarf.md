@@ -1,0 +1,45 @@
+<!-- Generated from lib/mods/theme/help/r_dwarf.txt by scripts/help_to_markdown.py; do not edit. -->
+
+# <a id="tag-1"></a><a id="tag-2"></a>Dwarves
+
+### Description
+
+Dwarves are the headstrong miners and fighters of legend. Since dungeons
+are the natural home of a dwarf, they are excellent choices for a warrior
+or priest. Dwarves tend to be stronger and tougher but less agile and
+intelligent than humans. Because they are so headstrong and are somewhat
+wise, they resist spells which are cast on them. Dwarves also have very
+good infra-vision because they live underground. They do have one big
+drawback, though: dwarves are loud-mouthed and proud, singing in boisterous
+voices, arguing with themselves for no good reason, and screaming out
+challenges at nearby foes. In other words, dwarves have miserable
+stealth. They can never be blinded, and they can also open secret tunnels
+through rock.
+
+### Stat Modifiers
+
+|   |   |
+| --- | --- |
+| Strength | +2 |
+| Intelligence | -2 |
+| Wisdom | +2 |
+| Dexterity | -2 |
+| Constitution | +2 |
+| Charisma | -3 |
+| Hit Dice Sides | 11 |
+| Exp Penalty | +25% |
+
+### Racial Skill Modifiers:
+
+| Skill | Start Mod | Skill Point Gains Mod |
+| --- | --- | --- |
+| Combat |  |  |
+| &nbsp;&nbsp;Weaponmastery | 1.500 | \[0.000\] |
+| &nbsp;&nbsp;&nbsp;&nbsp;Axe-mastery | 0.000 | \[0.200\] |
+| &nbsp;&nbsp;Archery | 0.500 | \[0.000\] |
+| Sneakiness | 0.700 | \[0.000\] |
+| &nbsp;&nbsp;Stealth | -1.000 | \[0.000\] |
+| &nbsp;&nbsp;Disarming | 0.200 | \[0.000\] |
+| Magic |  |  |
+| &nbsp;&nbsp;Magic-Device | 0.900 | \[0.000\] |
+| Spirituality | 5.000 | \[0.000\] |
