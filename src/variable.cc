@@ -581,6 +581,18 @@ s16b last_teleportation_x = -1;
  */
 const char *game_module;
 s32b game_module_idx;
+
+/*
+ * Module chosen by the player; game_module_idx is the module whose rules
+ * apply, which differs for mods.
+ */
+s32b game_module_selected_idx;
+
+/*
+ * Directory whose edit files take the place of ANGBAND_DIR_EDIT's (a
+ * mod's edit/ directory), or NULL
+ */
+char *ANGBAND_DIR_EDIT_OVERLAY = NULL;
 s32b VERSION_MAJOR;
 s32b VERSION_MINOR;
 s32b VERSION_PATCH;

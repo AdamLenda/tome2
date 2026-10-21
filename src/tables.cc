@@ -3613,7 +3613,7 @@ gf_name_type gf_names[] =
 /**
  * Modules
  */
-module_type modules[MAX_MODULES] =
+std::vector<module_type> modules =
 {
 	{ 
 		{ "ToME",
@@ -3624,6 +3624,10 @@ module_type modules[MAX_MODULES] =
 		  "But who knows what will happen...",
 		  "ToME",
 		  NULL /* default dir */,
+		  MODULE_TOME,
+		  NULL /* saves in the save directory */,
+		  NULL /* no edit overlay */,
+		  { } /* no other save tags */,
 		},
 		/* Randarts: */
 		{ 30, 20, 20 },
@@ -3644,6 +3648,10 @@ module_type modules[MAX_MODULES] =
 		  "terrain features, gods, races, subraces, and classes. Have fun. :-)",
 		  "Theme",
 		  "theme",
+		  MODULE_THEME,
+		  "theme",
+		  NULL /* no edit overlay */,
+		  { } /* no other save tags */,
 		},
 		/* Randarts: */
 		{ 30, 30, 30 },

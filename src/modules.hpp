@@ -13,3 +13,4 @@ s16b *theme_race_status(int r_idx);
 void init_hooks_module();
 int find_module(const char *name);
 bool private_check_user_directory(const char *dirpath);
+std::string module_edit_file_path(const char *name);

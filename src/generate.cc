@@ -6777,7 +6777,7 @@ bool level_generate_dungeon()
 		try_doors(y, x);
 	}
 
-	if (equals(game_module, "ToME"))
+	if (game_module_idx == MODULE_TOME)
 	{
 		/* Hack -- Add some magma streamers */
 		if ((dungeon_type == DUNGEON_MORDOR) || (dungeon_type == DUNGEON_ANGBAND))

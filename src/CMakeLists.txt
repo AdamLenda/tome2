@@ -107,6 +107,7 @@ SET(SRCS_COMMON
   squeltch.cc
   store.cc
   tables.cc
+  user_mods.cc
   util.cc
   variable.cc
   wild.cc
@@ -134,6 +135,7 @@ SET(SRCS_TESTS
   ../tests/lua_get_level.cc
   ../tests/flag_set.cc
   ../tests/grid.cc
+  ../tests/user_mods.cc
 )
 
 ADD_LIBRARY(game

@@ -20,6 +20,7 @@
 #include "monster_race.hpp"
 #include "monster_race_flag.hpp"
 #include "monster_spell.hpp"
+#include "modules.hpp"
 #include "monster_type.hpp"
 #include "object1.hpp"
 #include "object2.hpp"
@@ -6869,7 +6870,7 @@ errr process_dungeon_file(const char *name, int *yval, int *xval, int ymax, int 
 	}
 
 	/* Build the filename */
-	path_build(buf, 1024, ANGBAND_DIR_EDIT, name);
+	strnfmt(buf, 1024, "%s", module_edit_file_path(name).c_str());
 
 	/* Open the file */
 	fp = my_fopen(buf, "r");
