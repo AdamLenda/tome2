@@ -9,6 +9,7 @@
 
 #include "ability_type.hpp"
 #include "artifact_type.hpp"
+#include "birth_kit.hpp"
 #include "corrupt.hpp"
 #include "cmd4.hpp"
 #include "cmd5.hpp"
@@ -738,70 +739,120 @@ static void player_wipe()
 }
 
 
-/* Create an object */
-static void outfit_obj(object_proto const *proto)
+/*
+ * The starting-equipment levels of the player: race, subrace, class
+ * and class specialty.
+ */
+static std::vector<birth_kit const *> player_birth_kits()
 {
-	object_type forge;
-
-	/* Get local object */
-	auto q_ptr = &forge;
-	q_ptr->pval = 0;
-	q_ptr->pval2 = 0;
-
-	/* Hack -- Give the player an object */
-	object_prep(q_ptr, lookup_kind(proto->tval, proto->sval));
-
-	if (proto->pval)
-	{
-		q_ptr->pval = proto->pval;
-	}
-
-	/* These objects are "storebought" */
-	q_ptr->number = damroll(proto->dd, proto->ds);
-
-	inven_carry(q_ptr, false);
-}
-
-
-static void outfit_objs(std::vector<object_proto> const &protos)
-{
-	for (auto const &proto: protos)
-	{
-		outfit_obj(&proto);
-	}
+	return { &rp_ptr->kit, &rmp_ptr->kit, &cp_ptr->kit, &spp_ptr->kit };
 }
 
 
 /*
- * Give the player an object.
+ * Make a single-spell book.
  */
-static void player_outfit_object(int qty, int tval, int sval)
+static object_type make_birth_spellbook(const char *spell_name)
 {
 	object_type forge;
-	object_type *q_ptr = &forge;
-	object_prep(q_ptr, lookup_kind(tval, sval));
-	q_ptr->number = qty;
-	inven_carry(q_ptr, false);
-}
 
-
-/*
- * Give player a spell book.
- */
-static void player_outfit_spellbook(const char *spell_name)
-{
 	if (auto spell_idx = find_spell(spell_name))
 	{
-		object_type forge;
-		object_type *q_ptr = &forge;
-		object_prep(q_ptr, lookup_kind(TV_BOOK, 255));
-		q_ptr->pval = *spell_idx;
-		inven_carry(q_ptr, false);
+		object_prep(&forge, lookup_kind(TV_BOOK, 255));
+		forge.pval = *spell_idx;
 	}
 	else
 	{
-		quit_fmt("Couldn't find spell '%s'\n");
+		quit_fmt("Couldn't find spell '%s'\n", spell_name);
 	}
+
+	return forge;
+}
+
+
+/*
+ * Make an artifact (by a_info index).
+ */
+static object_type make_birth_artifact(int a_idx)
+{
+	auto const &a_info = game->edit_data.a_info;
+
+	if ((a_idx <= 0) || (a_idx >= static_cast<int>(a_info.size())) || !a_info[a_idx].name)
+	{
+		quit_fmt("Invalid starting artifact %d", a_idx);
+	}
+
+	auto const &a = a_info[a_idx];
+
+	object_type forge;
+	object_type *q_ptr = &forge;
+	object_wipe(q_ptr);
+	object_prep(q_ptr, lookup_kind(a.tval, a.sval));
+	q_ptr->name1 = a_idx;
+
+	/* Fill in the artifact's stats; also marks it as created */
+	apply_magic(q_ptr, -1, true, true, true);
+	random_artifact_resistance(q_ptr);
+
+	return forge;
+}
+
+
+/*
+ * Make a starting object from p_info.txt.
+ */
+static object_type make_birth_object(birth_object const &o)
+{
+	switch (o.type)
+	{
+	case birth_object::kind::ARTIFACT:
+		return make_birth_artifact(o.artifact_idx);
+	case birth_object::kind::SPELLBOOK:
+		return make_birth_spellbook(o.spell.c_str());
+	case birth_object::kind::OBJECT:
+		break;
+	}
+
+	object_type forge;
+	object_type *q_ptr = &forge;
+
+	/* Hack -- Give the player an object */
+	object_prep(q_ptr, lookup_kind(o.tval, o.sval));
+
+	if (o.pval)
+	{
+		q_ptr->pval = o.pval;
+	}
+
+	/* These objects are "storebought" */
+	q_ptr->number = o.number.roll();
+
+	/* Light source fuel */
+	if (o.fuel)
+	{
+		q_ptr->timeout = o.fuel->roll();
+	}
+
+	/* Mimic cloak form */
+	if (!o.form.empty())
+	{
+		auto form = resolve_mimic_name(o.form.c_str());
+
+		if (form < 0)
+		{
+			quit_fmt("Couldn't find mimic form '%s'\n", o.form.c_str());
+		}
+
+		/* Forms without a cloak name would crash when the cloak is shown */
+		if (!get_mimic_object_name(form))
+		{
+			quit_fmt("Mimic form '%s' cannot be given as a cloak\n", o.form.c_str());
+		}
+
+		q_ptr->pval2 = form;
+	}
+
+	return forge;
 }
 
 
@@ -812,138 +863,6 @@ static void player_outfit_spellbook(const char *spell_name)
  */
 static void player_outfit()
 {
-	// Shorthand names for convenience
-	const char *class_name = spp_ptr->title;
-	auto const &subrace_name = rmp_ptr->title;
-
-	/*
-	 * Get an adventurer guide describing a bit of the
-	 * wilderness.
-	 */
-	{
-		/* Hack -- Give the player an adventurer guide */
-		player_outfit_object(1, TV_PARCHMENT, 20);
-	}
-
-	/*
-	 * Provide spell books
-	 */
-	if (game_module_idx == MODULE_TOME)
-	{
-		if (equals(class_name, "Ranger"))
-		{
-			player_outfit_spellbook("Phase Door");
-		}
-	}
-	if (equals(class_name, "Geomancer"))
-	{
-		player_outfit_spellbook("Geyser");
-	}
-	if (equals(class_name, "Priest(Eru)"))
-	{
-		player_outfit_spellbook("See the Music");
-	}
-	if (equals(class_name, "Priest(Manwe)"))
-	{
-		player_outfit_spellbook("Manwe's Blessing");
-	}
-	if (equals(class_name, "Druid"))
-	{
-		player_outfit_spellbook("Charm Animal");
-	}
-	if (equals(class_name, "Dark-Priest"))
-	{
-		player_outfit_spellbook("Curse");
-	}
-	if (equals(class_name, "Paladin"))
-	{
-		player_outfit_spellbook("Divine Aim");
-	}
-	if (game_module_idx == MODULE_THEME)
-	{
-		/* Priests */
-		if (equals(class_name, "Stonewright"))
-		{
-			player_outfit_spellbook("Firebrand");
-		}
-		if (equals(class_name, "Priest(Varda)"))
-		{
-			player_outfit_spellbook("Light of Valinor");
-		}
-		if (equals(class_name, "Priest(Ulmo)"))
-		{
-			player_outfit_spellbook("Song of Belegaer");
-		}
-		if (equals(class_name, "Priest(Mandos)"))
-		{
-			player_outfit_spellbook("Tears of Luthien");
-		}
-
-		/* Dragons */
-		if (subrace_name == "Red")
-		{
-			player_outfit_spellbook("Globe of Light");
-		}
-		if (subrace_name == "Black")
-		{
-			player_outfit_spellbook("Geyser");
-		}
-		if (subrace_name == "Green")
-		{
-			player_outfit_spellbook("Noxious Cloud");
-		}
-		if (subrace_name == "Blue")
-		{
-			player_outfit_spellbook("Stone Skin");
-		}
-		if (subrace_name == "White")
-		{
-			player_outfit_spellbook("Sense Monsters");
-		}
-		if (subrace_name == "Ethereal")
-		{
-			player_outfit_spellbook("Recharge");
-		}
-
-		/* Demons */
-		if (subrace_name == "(Aewrog)")
-		{
-			player_outfit_spellbook("Charm");
-		}
-		if (subrace_name == "(Narrog)")
-		{
-			player_outfit_spellbook("Phase Door");
-		}
-
-		/* Peace-mages */
-		if (equals(class_name, "Peace-mage"))
-		{
-			player_outfit_spellbook("Phase Door");
-		}
-
-		/* Wainriders */
-		if (equals(class_name, "Wainrider"))
-		{
-			player_outfit_spellbook("Curse");
-		}
-	}
-
-	if (equals(class_name, "Mimic"))
-	{
-		object_type forge;
-		object_type *q_ptr = &forge;
-		
-		object_prep(q_ptr, lookup_kind(TV_CLOAK, SV_MIMIC_CLOAK));
-		q_ptr->pval2 = resolve_mimic_name("Mouse");
-		inven_carry(q_ptr, false);
-	}
-
-	if (game_module_idx == MODULE_THEME)
-	{
-		/* Give everyone a scroll of WoR. */
-		player_outfit_object(1, TV_SCROLL, SV_SCROLL_WORD_OF_RECALL);
-	}
-
 	if (rmp_ptr->title == "Vampire")
 	{
 		player_gain_corruption(CORRUPT_VAMPIRE_TEETH);
@@ -954,27 +873,18 @@ static void player_outfit()
 	process_hooks_new(HOOK_BIRTH_OBJECTS, NULL, NULL);
 	meta_inertia_control_hook_birth_objects();
 
-	{
-		/* Hack -- Give the player some food */
-		int qty = (byte)rand_range(3, 7);
-		player_outfit_object(qty, TV_FOOD, SV_FOOD_RATION);
-	}
+	/* Outfit the player with the starting equipment from p_info.txt */
+	birth_character who;
+	who.race = rp_ptr->title;
+	who.subrace = rmp_ptr->title;
+	who.class_name = cp_ptr->title;
+	who.spec = spp_ptr->title;
 
+	for (auto const &o : assemble_birth_kit(game->edit_data.gen_kit, player_birth_kits(), who))
 	{
-		object_type forge;
-		object_type *q_ptr = &forge;
-		/* Hack -- Give the player some torches */
-		object_prep(q_ptr, lookup_kind(TV_LITE, SV_LITE_TORCH));
-		q_ptr->number = (byte)rand_range(3, 7);
-		q_ptr->timeout = rand_range(3, 7) * 500;
-		inven_carry(q_ptr, false);
+		auto forge = make_birth_object(o);
+		inven_carry(&forge, false);
 	}
-
-	/* Outfit the player with starting items */
-	outfit_objs(rp_ptr->object_protos);
-	outfit_objs(rmp_ptr->object_protos);
-	outfit_objs(cp_ptr->object_protos);
-	outfit_objs(cp_ptr->spec[p_ptr->pspec].object_protos);
 }
 
 

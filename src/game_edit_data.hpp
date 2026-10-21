@@ -2,6 +2,7 @@
 
 #include "ability_type.hpp"
 #include "artifact_type.hpp"
+#include "birth_kit.hpp"
 #include "dungeon_info_type.hpp"
 #include "ego_item_type.hpp"
 #include "feature_type.hpp"
@@ -136,6 +137,11 @@ struct GameEditData {
 	 * Base skills for all characters.
 	 */
 	skill_modifiers gen_skill;
+
+	/**
+	 * Starting equipment for all characters.
+	 */
+	general_birth_kit gen_kit;
 
 	/**
 	 * Player abilities.
