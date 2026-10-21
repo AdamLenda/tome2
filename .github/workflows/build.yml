@@ -22,3 +22,30 @@ jobs:
       - name: build
         working-directory: build/
         run: make VERBOSE=1
+
+      - name: test
+        working-directory: build/
+        run: ./src/harness
+
+  build-macos:
+    runs-on: macos-15
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - run: brew install boost
+
+      - run: mkdir build
+
+      - name: cmake
+        working-directory: build/
+        run: cmake ..
+
+      - name: build
+        working-directory: build/
+        run: make VERBOSE=1
+
+      - name: test
+        working-directory: build/
+        run: ./src/harness
