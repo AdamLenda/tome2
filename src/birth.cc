@@ -9,6 +9,7 @@
 
 #include "ability_type.hpp"
 #include "artifact_type.hpp"
+#include "birth_kit.hpp"
 #include "corrupt.hpp"
 #include "cmd4.hpp"
 #include "cmd5.hpp"
@@ -738,37 +739,120 @@ static void player_wipe()
 }
 
 
-/* Create an object */
-static void outfit_obj(object_proto const *proto)
+/*
+ * The starting-equipment levels of the player: race, subrace, class
+ * and class specialty.
+ */
+static std::vector<birth_kit const *> player_birth_kits()
 {
-	object_type forge;
-
-	/* Get local object */
-	auto q_ptr = &forge;
-	q_ptr->pval = 0;
-	q_ptr->pval2 = 0;
-
-	/* Hack -- Give the player an object */
-	object_prep(q_ptr, lookup_kind(proto->tval, proto->sval));
-
-	if (proto->pval)
-	{
-		q_ptr->pval = proto->pval;
-	}
-
-	/* These objects are "storebought" */
-	q_ptr->number = damroll(proto->dd, proto->ds);
-
-	inven_carry(q_ptr, false);
+	return { &rp_ptr->kit, &rmp_ptr->kit, &cp_ptr->kit, &spp_ptr->kit };
 }
 
 
-static void outfit_objs(std::vector<object_proto> const &protos)
+/*
+ * Make a single-spell book.
+ */
+static object_type make_birth_spellbook(const char *spell_name)
 {
-	for (auto const &proto: protos)
+	object_type forge;
+
+	if (auto spell_idx = find_spell(spell_name))
 	{
-		outfit_obj(&proto);
+		object_prep(&forge, lookup_kind(TV_BOOK, 255));
+		forge.pval = *spell_idx;
 	}
+	else
+	{
+		quit_fmt("Couldn't find spell '%s'\n", spell_name);
+	}
+
+	return forge;
+}
+
+
+/*
+ * Make an artifact (by a_info index).
+ */
+static object_type make_birth_artifact(int a_idx)
+{
+	auto const &a_info = game->edit_data.a_info;
+
+	if ((a_idx <= 0) || (a_idx >= static_cast<int>(a_info.size())) || !a_info[a_idx].name)
+	{
+		quit_fmt("Invalid starting artifact %d", a_idx);
+	}
+
+	auto const &a = a_info[a_idx];
+
+	object_type forge;
+	object_type *q_ptr = &forge;
+	object_wipe(q_ptr);
+	object_prep(q_ptr, lookup_kind(a.tval, a.sval));
+	q_ptr->name1 = a_idx;
+
+	/* Fill in the artifact's stats; also marks it as created */
+	apply_magic(q_ptr, -1, true, true, true);
+	random_artifact_resistance(q_ptr);
+
+	return forge;
+}
+
+
+/*
+ * Make a starting object from p_info.txt.
+ */
+static object_type make_birth_object(birth_object const &o)
+{
+	switch (o.type)
+	{
+	case birth_object::kind::ARTIFACT:
+		return make_birth_artifact(o.artifact_idx);
+	case birth_object::kind::SPELLBOOK:
+		return make_birth_spellbook(o.spell.c_str());
+	case birth_object::kind::OBJECT:
+		break;
+	}
+
+	object_type forge;
+	object_type *q_ptr = &forge;
+
+	/* Hack -- Give the player an object */
+	object_prep(q_ptr, lookup_kind(o.tval, o.sval));
+
+	if (o.pval)
+	{
+		q_ptr->pval = o.pval;
+	}
+
+	/* These objects are "storebought" */
+	q_ptr->number = o.number.roll();
+
+	/* Light source fuel */
+	if (o.fuel)
+	{
+		q_ptr->timeout = o.fuel->roll();
+	}
+
+	/* Mimic cloak form */
+	if (!o.form.empty())
+	{
+		auto form = resolve_mimic_name(o.form.c_str());
+
+		if (form < 0)
+		{
+			quit_fmt("Couldn't find mimic form '%s'\n", o.form.c_str());
+		}
+
+		/* Forms without a cloak name would crash when the cloak is shown */
+		if (!get_mimic_object_name(form))
+		{
+			quit_fmt("Mimic form '%s' cannot be given as a cloak\n", o.form.c_str());
+		}
+
+		q_ptr->pval2 = form;
+	}
+
+	return forge;
 }
 
 
@@ -970,11 +1054,18 @@ static void player_outfit()
 		inven_carry(q_ptr, false);
 	}
 
-	/* Outfit the player with starting items */
-	outfit_objs(rp_ptr->object_protos);
-	outfit_objs(rmp_ptr->object_protos);
-	outfit_objs(cp_ptr->object_protos);
-	outfit_objs(cp_ptr->spec[p_ptr->pspec].object_protos);
+	/* Outfit the player with the starting equipment from p_info.txt */
+	birth_character who;
+	who.race = rp_ptr->title;
+	who.subrace = rmp_ptr->title;
+	who.class_name = cp_ptr->title;
+	who.spec = spp_ptr->title;
+
+	for (auto const &o : assemble_birth_kit(game->edit_data.gen_kit, player_birth_kits(), who))
+	{
+		auto forge = make_birth_object(o);
+		inven_carry(&forge, false);
+	}
 }
 
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "h-basic.hpp"
-#include "object_proto.hpp"
+#include "birth_kit.hpp"
 #include "player_race_ability_type.hpp"
 #include "player_race_flag_set.hpp"
 #include "skill_modifiers.hpp"
@@ -19,7 +19,7 @@ struct player_spec
 
 	struct skill_modifiers skill_modifiers;
 
-	std::vector<object_proto> object_protos;
+	birth_kit kit;                                          /* Starting equipment */
 
 	u32b gods = 0;
 

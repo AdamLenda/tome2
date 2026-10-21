@@ -20,6 +20,29 @@ G:k:+0:+500:Prayer
 G:k:+0:+400:Udun
 G:k:+1000:+1000:Magic-Device
 
+# Starting equipment
+#
+# Starting equipment can be given at every level: G (everyone),
+# R (race), S (subrace), C (class) and C:a (class specialty). Every
+# level accepts O lines; X and T lines are for R, S, C and C:a only:
+#
+# O:<tval>:<sval>[:<pval>]:<number>[:fuel=<number>][:form=<name>]
+#     a starting object; <number> is N, A-B or XdY, optionally
+#     followed by *M to multiply it; fuel sets a light source's
+#     turns of light and form a mimic cloak's monster form
+# O:A:<a_info index>   a starting artifact
+# O:B:<spell name>     a single-spell book
+# X:<tval>:<sval>      never give this (non-artifact) starting object,
+#                      whichever level gives it
+# T:<tag>              a character tag
+#
+# In this general section, G:W:<filter> limits the G:O lines that
+# follow it to matching characters; <filter> is * (everyone, the
+# default) or conditions joined by '&' that must all match, each
+# RACE:, SUBRACE:, CLASS:, SPEC: or TAG: followed by names separated
+# by '|' (any of which matches), e.g. G:W:TAG:spellcaster or
+# G:W:RACE:Maia&SPEC:Mage|Sorceror
+
 ##############################################################################
 ##############################################################################
 ##############################################################################
