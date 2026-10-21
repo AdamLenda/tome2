@@ -8,6 +8,10 @@ The in-game help can also be read here:
 [ToME help](doc/help/README.md) and
 [Theme module help](doc/help/theme/README.md).
 
+Guides written for this fork:
+[keys and controls](doc/controls.md) and
+[debug (wizard) mode](doc/debug-mode.md).
+
 ## Getting Started
 
 ### Prerequisites
